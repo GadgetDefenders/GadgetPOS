@@ -1,23 +1,48 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const DEFAULT_URL = 'https://opktwcgugnzbxeuxvggc.supabase.co';
+const CONFIG_KEY = 'gadgetpos_cloud_config';
 
-export const cloudConfigured = Boolean(url && publishableKey);
+type CloudConfig = { url: string; publishableKey: string };
+let cachedClient: SupabaseClient | null = null;
+let cachedSignature = '';
 
-export const supabase = cloudConfigured
-  ? createClient(url!, publishableKey!, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : null;
+export function getCloudConfig(): CloudConfig {
+  const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const envKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') as Partial<CloudConfig>;
+  return {
+    url: envUrl || saved.url || DEFAULT_URL,
+    publishableKey: envKey || saved.publishableKey || '',
+  };
+}
+
+export function saveCloudConfig(config: CloudConfig) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  cachedClient = null;
+  cachedSignature = '';
+}
+
+export function isCloudConfigured() {
+  const config = getCloudConfig();
+  return Boolean(config.url && config.publishableKey);
+}
+
+export function getSupabase(): SupabaseClient | null {
+  const config = getCloudConfig();
+  if (!config.url || !config.publishableKey) return null;
+  const signature = `${config.url}|${config.publishableKey}`;
+  if (!cachedClient || cachedSignature !== signature) {
+    cachedClient = createClient(config.url, config.publishableKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
+    cachedSignature = signature;
+  }
+  return cachedClient;
+}
 
 export function requireSupabase() {
-  if (!supabase) {
-    throw new Error('Cloud sync is not configured. Copy .env.example to .env and add the Supabase project values.');
-  }
-  return supabase;
+  const client = getSupabase();
+  if (!client) throw new Error('Cloud sync is not configured. Add the Supabase publishable key in Settings.');
+  return client;
 }
