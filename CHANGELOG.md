@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.1 - Cloud Authentication Setup
+
+### Added
+- Supabase email/password sign-in helpers
+- Account creation support
+- Password-reset email support
+- Persistent cloud sessions
+- Runtime cloud configuration support
+- GadgetPOS Supabase project URL configured
+- Detailed cloud activation guide
+
+### Security
+- The publishable key is not committed to GitHub.
+- The service-role key must never be used in the browser app.
+
+### Activation remaining
+- Add the publishable key to `.env.local` on the computer running GadgetPOS.
+- Run `supabase/migrations/001_initial_schema.sql` once in Supabase SQL Editor.
+
 ## 0.3.0 - Cloud Foundation
 
 ### Added
@@ -15,12 +34,6 @@
 ### Important
 - GadgetPOS still works locally without cloud credentials.
 - Activating live cloud storage requires a Supabase project URL, publishable key, and running the included migration.
-
-### Next
-- Cloud login and shop selection
-- Automatic sync indicator and conflict handling
-- Full ticket editing
-- Repair timeline and customer history workspace
 
 ## 0.2.0 - Customers and Check-In
 
