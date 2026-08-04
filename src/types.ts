@@ -12,7 +12,9 @@ export interface Customer {
   name: string;
   phone: string;
   email?: string;
+  notes?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Repair {
@@ -24,7 +26,11 @@ export interface Repair {
   deviceType: string;
   brand: string;
   model: string;
+  color?: string;
+  serial?: string;
+  passcode?: string;
   issue: string;
+  part?: string;
   status: RepairStatus;
   technician?: string;
   priority: 'Normal' | 'High' | 'Urgent';
