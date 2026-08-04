@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0 - Customer & Check-In
+
+### Added
+- Create, edit, search, and delete customer profiles
+- Customer repair counts and last-visit display
+- Start a repair directly from a customer profile
+- Repair check-in form linked to saved customers
+- Device type and brand selection
+- Searchable iPhone model list from iPhone 8 through iPhone 17 Pro Max
+- Console, computer, Samsung, Google, and Motorola device choices
+- IMEI/serial, passcode, color, problem, part, technician, priority, estimate, due date, and notes
+- Saved repair tickets appear immediately on the Repair Board
+- Universal search now includes IMEI/serial values
+
+### Next
+- Open and edit complete repair tickets
+- Repair timeline and activity history
+- Customer profile repair-history view
+- Inventory management and parts linking
+
 ## 0.1.0 - Developer Preview
 
 ### Added
@@ -12,10 +32,3 @@
 - Test repair creation
 - Repair status updates
 - Responsive dark interface
-
-### Next
-- Customer creation and editing
-- Searchable repair check-in
-- Full repair workspace and timeline
-- Inventory item management
-- POS checkout foundation
