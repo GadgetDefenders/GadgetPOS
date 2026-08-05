@@ -7,6 +7,8 @@ export type RepairStatus =
   | 'Ready for Pickup'
   | 'Completed';
 
+export type InventoryCategory = 'Phone' | 'Accessory' | 'Prepaid Service' | 'Repair Part';
+
 export interface Customer {
   id: string;
   name: string;
@@ -52,11 +54,24 @@ export interface RepairTimelineEntry {
 
 export interface InventoryItem {
   id: string;
+  category: InventoryCategory;
   name: string;
+  brand?: string;
   model?: string;
   sku?: string;
+  barcode?: string;
+  imei?: string;
+  serial?: string;
+  carrier?: string;
+  storage?: string;
+  color?: string;
+  condition?: 'New' | 'Like New' | 'Good' | 'Fair' | 'For Parts';
+  batteryHealth?: number;
   quantity: number;
   minimum: number;
   cost: number;
   price: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
