@@ -34,6 +34,7 @@ export interface Repair {
   passcode?: string;
   issue: string;
   part?: string;
+  partId?: string;
   status: RepairStatus;
   technician?: string;
   priority: 'Normal' | 'High' | 'Urgent';
@@ -73,6 +74,13 @@ export interface InventoryItem {
   cost: number;
   price: number;
   notes?: string;
+  repairDeviceType?: string;
+  compatibleBrands?: string[];
+  compatibleModels?: string[];
+  compatibleRepairTypes?: string[];
+  warranty?: string;
+  supplier?: string;
+  location?: string;
   createdAt?: string;
   updatedAt?: string;
 }
