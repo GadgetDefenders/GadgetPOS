@@ -19,6 +19,7 @@ import CustomerNotificationCenterWidget from './CustomerNotificationCenterWidget
 import RepairTimelineCenterWidget from './RepairTimelineCenterWidget';
 import WarrantyCenterWidget from './WarrantyCenterWidget';
 import DeviceHistoryCenterWidget from './DeviceHistoryCenterWidget';
+import QuickActionBarWidget from './QuickActionBarWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -40,10 +41,12 @@ import './customerNotificationCenter.css';
 import './repairTimelineCenter.css';
 import './warrantyCenter.css';
 import './deviceHistoryCenter.css';
+import './quickActionBar.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
+    <QuickActionBarWidget />
     <RepairIntakeWidgetV2 />
     <ReportsNavWidget />
     <InventoryManagerWidget />
