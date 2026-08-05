@@ -4,6 +4,7 @@ import App from './App';
 import RepairIntakeWidget from './RepairIntakeWidget';
 import ReportsNavWidget from './ReportsNavWidget';
 import InventoryManagerWidget from './InventoryManagerWidget';
+import RepairPrintWidget from './RepairPrintWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -17,5 +18,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <RepairIntakeWidget />
     <ReportsNavWidget />
     <InventoryManagerWidget />
+    <RepairPrintWidget />
   </React.StrictMode>,
 );
