@@ -5,6 +5,7 @@ import RepairIntakeWidgetV2 from './RepairIntakeWidgetV2';
 import ReportsNavWidget from './ReportsNavWidget';
 import InventoryManagerWidget from './InventoryManagerWidget';
 import RepairPrintWidget from './RepairPrintWidget';
+import CardLabelOverrideWidget from './CardLabelOverrideWidget';
 import SalesReceiptWidget from './SalesReceiptWidget';
 import RepairManagerWidget from './RepairManagerWidget';
 import RepairPartsManagerWidget from './RepairPartsManagerWidget';
@@ -62,6 +63,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <InventoryReceivingWidget />
     <InventoryManagerWidget />
     <RepairPrintWidget />
+    <CardLabelOverrideWidget />
     <SalesReceiptWidget />
     <RepairManagerWidget />
     <RepairPartsManagerWidget />
