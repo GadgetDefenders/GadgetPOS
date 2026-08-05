@@ -20,6 +20,7 @@ import RepairTimelineCenterWidget from './RepairTimelineCenterWidget';
 import WarrantyCenterWidget from './WarrantyCenterWidget';
 import DeviceHistoryCenterWidget from './DeviceHistoryCenterWidget';
 import QuickActionBarWidget from './QuickActionBarWidget';
+import ReportsDataCenterWidget from './ReportsDataCenterWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -42,6 +43,7 @@ import './repairTimelineCenter.css';
 import './warrantyCenter.css';
 import './deviceHistoryCenter.css';
 import './quickActionBar.css';
+import './reportsDataCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -49,6 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QuickActionBarWidget />
     <RepairIntakeWidgetV2 />
     <ReportsNavWidget />
+    <ReportsDataCenterWidget />
     <InventoryManagerWidget />
     <RepairPrintWidget />
     <SalesReceiptWidget />
