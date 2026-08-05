@@ -63,9 +63,43 @@ export default function QuickActionBarWidget(){
     if(searchOpen){setRecent(readRecent());window.setTimeout(()=>inputRef.current?.focus(),30);}
   },[searchOpen]);
 
+  function newRepair(){
+    clickSidebar('POS');
+    window.setTimeout(()=>{
+      const smart=[...document.querySelectorAll<HTMLButtonElement>('button')]
+        .find(button=>button.textContent?.trim()==='Smart Check-In');
+      if(smart)smart.click();
+      else [...document.querySelectorAll<HTMLButtonElement>('button')]
+        .find(button=>button.textContent?.includes('Cellphone Repair'))?.click();
+    },120);
+  }
+
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
-      if(event.key==='Escape'&&searchOpen){setSearchOpen(false);setQuery('');}
+      const target=event.target as HTMLElement|null;
+      const typing=target?.tagName==='INPUT'||target?.tagName==='TEXTAREA'||target?.tagName==='SELECT'||target?.isContentEditable;
+
+      if(event.key==='Escape'){
+        if(searchOpen){setSearchOpen(false);setQuery('');}
+        else document.querySelector<HTMLButtonElement>('.modal button[aria-label="Close"], .universal-search-close')?.click();
+        return;
+      }
+
+      if(typing)return;
+
+      if(event.key==='F2'){
+        event.preventDefault();
+        newRepair();
+      }else if(event.key==='F3'){
+        event.preventDefault();
+        clickSidebar('POS');
+      }else if(event.key==='F4'){
+        event.preventDefault();
+        setSearchOpen(true);
+      }else if(event.key==='F5'){
+        event.preventDefault();
+        clickSidebar('Inventory');
+      }
     };
     window.addEventListener('keydown',onKey);
     return()=>window.removeEventListener('keydown',onKey);
@@ -88,17 +122,6 @@ export default function QuickActionBarWidget(){
     if(!term)return [];
     return all.filter(item=>item.searchText.toLowerCase().includes(term)).slice(0,24);
   },[query,searchOpen]);
-
-  function newRepair(){
-    clickSidebar('POS');
-    window.setTimeout(()=>{
-      const smart=[...document.querySelectorAll<HTMLButtonElement>('button')]
-        .find(button=>button.textContent?.trim()==='Smart Check-In');
-      if(smart)smart.click();
-      else [...document.querySelectorAll<HTMLButtonElement>('button')]
-        .find(button=>button.textContent?.includes('Cellphone Repair'))?.click();
-    },120);
-  }
 
   function choose(result:Result){
     setRecent(saveRecent(result));
@@ -125,12 +148,12 @@ export default function QuickActionBarWidget(){
 
   return <>
     <div className="quick-action-bar" aria-label="Quick actions">
-      <button className="quick-primary" onClick={newRepair}><Wrench size={17}/>New Repair</button>
-      <button onClick={()=>clickSidebar('POS')}><ShoppingCart size={17}/>Checkout</button>
+      <button className="quick-primary" title="New Repair (F2)" onClick={newRepair}><Wrench size={17}/>New Repair</button>
+      <button title="Checkout (F3)" onClick={()=>clickSidebar('POS')}><ShoppingCart size={17}/>Checkout</button>
       <button onClick={()=>clickSidebar('Customers')}><UserRound size={17}/>Customers</button>
-      <button onClick={()=>clickSidebar('Inventory')}><Boxes size={17}/>Inventory</button>
-      <button onClick={()=>setSearchOpen(true)}><Search size={17}/>Search</button>
-      <button onClick={()=>window.print()}><Printer size={17}/>Print</button>
+      <button title="Inventory (F5)" onClick={()=>clickSidebar('Inventory')}><Boxes size={17}/>Inventory</button>
+      <button title="Search (F4)" onClick={()=>setSearchOpen(true)}><Search size={17}/>Search</button>
+      <button title="Print (Ctrl/Cmd + P)" onClick={()=>window.print()}><Printer size={17}/>Print</button>
     </div>
     {searchOpen&&<div className="universal-search-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setSearchOpen(false);setQuery('')}}}>
       <div className="universal-search-modal" role="dialog" aria-modal="true" aria-label="Universal search">
