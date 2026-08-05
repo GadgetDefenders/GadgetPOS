@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Eye, EyeOff, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Eye, EyeOff, Pencil, Plus, Save, Settings2, Trash2, X } from 'lucide-react';
 
 export type PosCatalogTab='Repairs'|'Products'|'Cell Phones'|'Accessories'|'Prepaid Service'|'Miscellaneous'|'Bill Payments';
 export type PosCatalogItem={id:string;tab:PosCatalogTab;name:string;price:number;taxable:boolean;color:string;icon:string;hidden:boolean;order:number};
@@ -19,6 +19,7 @@ export function readPosCatalog():PosCatalogItem[]{try{const raw=localStorage.get
 export default function PosCatalogManagerWidget(){
  const [visible,setVisible]=useState(false);
  const [activeTab,setActiveTab]=useState<PosCatalogTab>('Repairs');
+ const [menuOpen,setMenuOpen]=useState(false);
  const [open,setOpen]=useState(false);
  const [items,setItems]=useState<PosCatalogItem[]>(readPosCatalog());
  const [editing,setEditing]=useState<PosCatalogItem|null>(null);
@@ -32,24 +33,34 @@ export default function PosCatalogManagerWidget(){
   const sync=()=>{
    const isPos=document.querySelector('.topbar h1')?.textContent?.trim()==='POS';
    setVisible(isPos);
+   if(!isPos)setMenuOpen(false);
    const active=document.querySelector('.pos-tabs button.active')?.textContent?.trim() as PosCatalogTab|undefined;
    if(active&&tabs.includes(active))setActiveTab(active);
   };
   sync();const observer=new MutationObserver(sync);observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class']});
-  return()=>observer.disconnect();
+  const closeMenu=(event:MouseEvent)=>{if(!(event.target as HTMLElement).closest('.pcm-manage-wrap'))setMenuOpen(false)};
+  document.addEventListener('click',closeMenu);
+  return()=>{observer.disconnect();document.removeEventListener('click',closeMenu)};
  },[]);
 
  const current=useMemo(()=>items.filter(i=>i.tab===activeTab).sort((a,b)=>a.order-b.order),[items,activeTab]);
  function persist(next:PosCatalogItem[]){setItems(next);localStorage.setItem(POS_CATALOG_KEY,JSON.stringify(next));window.dispatchEvent(new Event('gadgetpos-pos-catalog-changed'))}
  function resetForm(){setEditing(null);setName('');setPrice('');setTaxable(activeTab!=='Prepaid Service'&&activeTab!=='Bill Payments');setColor('blue');setIcon('＋')}
  function startEdit(item:PosCatalogItem){setEditing(item);setName(item.name);setPrice(String(item.price));setTaxable(item.taxable);setColor(item.color);setIcon(item.icon)}
+ function openManager(){resetForm();setMenuOpen(false);setOpen(true)}
  function save(){if(!name.trim()){alert('Enter a button name.');return}const priceValue=Math.max(0,Number(price)||0);if(editing){persist(items.map(i=>i.id===editing.id?{...i,name:name.trim(),price:priceValue,taxable,color,icon}:i))}else{const max=Math.max(0,...current.map(i=>i.order));persist([...items,{id:crypto.randomUUID(),tab:activeTab,name:name.trim(),price:priceValue,taxable,color,icon:hiddenIcon(icon),hidden:false,order:max+10}])}resetForm()}
  function hiddenIcon(value:string){return value.trim()||'＋'}
  function move(item:PosCatalogItem,direction:-1|1){const ordered=[...current];const index=ordered.findIndex(i=>i.id===item.id);const target=index+direction;if(target<0||target>=ordered.length)return;const a=ordered[index],b=ordered[target];persist(items.map(i=>i.id===a.id?{...i,order:b.order}:i.id===b.id?{...i,order:a.order}:i))}
 
  if(!visible)return null;
  return <>
-  <button className="pcm-manage-button" onClick={()=>{resetForm();setOpen(true)}}><Pencil size={16}/>Manage This Tab</button>
+  <div className="pcm-manage-wrap">
+   <button className="pcm-manage-button" onClick={event=>{event.stopPropagation();setMenuOpen(value=>!value)}}><Settings2 size={17}/>Manage<ChevronDown size={15}/></button>
+   {menuOpen&&<div className="pcm-manage-menu">
+    <button onClick={openManager}><Pencil size={16}/><span><strong>Manage This Tab</strong><small>Edit buttons inside {activeTab}</small></span></button>
+    <button onClick={()=>{setMenuOpen(false);document.querySelector<HTMLButtonElement>('.repair-admin-button')?.click()}}><Settings2 size={16}/><span><strong>Repair Catalog</strong><small>Edit repair categories and models</small></span></button>
+   </div>}
+  </div>
   {open&&<div className="pcm-backdrop"><section className="pcm-modal"><header><div><h2>POS Catalog Manager</h2><p>Add and organize the buttons shown inside <strong>{activeTab}</strong>.</p></div><button onClick={()=>setOpen(false)}><X/></button></header>
    <nav className="pcm-tab-strip">{tabs.map(tab=><button className={activeTab===tab?'active':''} onClick={()=>{setActiveTab(tab);resetForm()}} key={tab}>{tab}</button>)}</nav>
    <div className="pcm-body"><div className="pcm-list"><div className="pcm-list-head"><strong>{activeTab} Buttons</strong><span>{current.filter(i=>!i.hidden).length} visible</span></div>{current.map((item,index)=><article key={item.id} className={item.hidden?'hidden':''}><span className={`pcm-swatch ${item.color}`}>{item.icon}</span><div><strong>{item.name}</strong><small>{item.price?`$${item.price.toFixed(2)}`:'Price entered at sale'} · {item.taxable?'Taxable':'Non-taxable'}</small></div><div className="pcm-row-actions"><button disabled={index===0} onClick={()=>move(item,-1)} title="Move up"><ArrowUp/></button><button disabled={index===current.length-1} onClick={()=>move(item,1)} title="Move down"><ArrowDown/></button><button onClick={()=>persist(items.map(i=>i.id===item.id?{...i,hidden:!i.hidden}:i))} title={item.hidden?'Show':'Hide'}>{item.hidden?<Eye/>:<EyeOff/>}</button><button onClick={()=>startEdit(item)} title="Edit"><Pencil/></button><button className="danger" onClick={()=>{if(confirm(`Delete ${item.name}?`))persist(items.filter(i=>i.id!==item.id))}} title="Delete"><Trash2/></button></div></article>)}{!current.length&&<div className="pcm-empty">No custom buttons in this tab yet.</div>}</div>
