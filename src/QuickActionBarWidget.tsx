@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Boxes, Printer, Search, ShoppingCart, Smartphone, UserRound, Wrench, X } from 'lucide-react';
+import { Boxes, Clock3, Printer, Search, ShoppingCart, Smartphone, UserRound, Wrench, X } from 'lucide-react';
 import { storage } from './storage';
 
 type Result={
@@ -9,6 +9,18 @@ type Result={
   detail:string;
   searchText:string;
 };
+
+const RECENT_KEY='gadgetpos_recent_items_v1';
+
+function readRecent():Result[]{
+  try{return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]') as Result[];}catch{return[];}
+}
+
+function saveRecent(item:Result){
+  const next=[item,...readRecent().filter(row=>!(row.id===item.id&&row.type===item.type))].slice(0,10);
+  localStorage.setItem(RECENT_KEY,JSON.stringify(next));
+  return next;
+}
 
 function clickSidebar(label:string){
   const button=[...document.querySelectorAll<HTMLButtonElement>('.sidebar nav button')]
@@ -36,6 +48,7 @@ export default function QuickActionBarWidget(){
   const [visible,setVisible]=useState(false);
   const [searchOpen,setSearchOpen]=useState(false);
   const [query,setQuery]=useState('');
+  const [recent,setRecent]=useState<Result[]>(readRecent());
   const inputRef=useRef<HTMLInputElement>(null);
 
   useEffect(()=>{
@@ -47,7 +60,7 @@ export default function QuickActionBarWidget(){
   },[]);
 
   useEffect(()=>{
-    if(searchOpen)window.setTimeout(()=>inputRef.current?.focus(),30);
+    if(searchOpen){setRecent(readRecent());window.setTimeout(()=>inputRef.current?.focus(),30);}
   },[searchOpen]);
 
   useEffect(()=>{
@@ -88,6 +101,7 @@ export default function QuickActionBarWidget(){
   }
 
   function choose(result:Result){
+    setRecent(saveRecent(result));
     setSearchOpen(false);setQuery('');
     if(result.type==='Customer'){openPageWithSearch('Customers',result.title);return;}
     if(result.type==='Repair'){openPageWithSearch('Repairs',result.title.split(' · ')[0]);return;}
@@ -98,6 +112,14 @@ export default function QuickActionBarWidget(){
     }
     clickSidebar('POS');
   }
+
+  function clearRecent(){localStorage.removeItem(RECENT_KEY);setRecent([]);}
+
+  const renderResult=(result:Result)=><button key={`${result.type}-${result.id}`} onClick={()=>choose(result)}>
+    <span className={`universal-result-icon ${result.type.toLowerCase()}`}>{result.type==='Customer'?<UserRound size={18}/>:result.type==='Repair'?<Wrench size={18}/>:result.type==='Device'?<Smartphone size={18}/>:result.type==='Inventory'?<Boxes size={18}/>:<ShoppingCart size={18}/>}</span>
+    <span className="universal-result-copy"><strong>{result.title}</strong><small>{result.detail||'No additional details'}</small></span>
+    <b>{result.type}</b>
+  </button>;
 
   if(!visible)return null;
 
@@ -117,13 +139,13 @@ export default function QuickActionBarWidget(){
           <button className="universal-search-close" onClick={()=>{setSearchOpen(false);setQuery('')}} aria-label="Close search"><X size={20}/></button>
         </div>
         <div className="universal-search-results">
-          {!query.trim()&&<div className="universal-search-empty"><Search size={30}/><strong>Search all of GadgetPOS</strong><span>Customers, repairs, devices, inventory and sales.</span></div>}
+          {!query.trim()&&recent.length>0&&<>
+            <div className="universal-recent-head"><span><Clock3 size={16}/>Recent Items</span><button onClick={clearRecent}>Clear</button></div>
+            {recent.map(renderResult)}
+          </>}
+          {!query.trim()&&!recent.length&&<div className="universal-search-empty"><Clock3 size={30}/><strong>No recent items yet</strong><span>Items you open from search will appear here.</span></div>}
           {query.trim()&&!results.length&&<div className="universal-search-empty"><strong>No results found</strong><span>Try a name, phone number, ticket, model, IMEI, SKU or barcode.</span></div>}
-          {results.map(result=><button key={`${result.type}-${result.id}`} onClick={()=>choose(result)}>
-            <span className={`universal-result-icon ${result.type.toLowerCase()}`}>{result.type==='Customer'?<UserRound size={18}/>:result.type==='Repair'?<Wrench size={18}/>:result.type==='Device'?<Smartphone size={18}/>:result.type==='Inventory'?<Boxes size={18}/>:<ShoppingCart size={18}/>}</span>
-            <span className="universal-result-copy"><strong>{result.title}</strong><small>{result.detail||'No additional details'}</small></span>
-            <b>{result.type}</b>
-          </button>)}
+          {results.map(renderResult)}
         </div>
       </div>
     </div>}
