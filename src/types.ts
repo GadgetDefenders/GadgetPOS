@@ -20,12 +20,29 @@ export interface Customer {
   updatedAt?: string;
 }
 
+export interface CustomerDevice {
+  id: string;
+  customerId: string;
+  deviceType: 'Phone' | 'Tablet' | 'Computer' | 'Apple Watch' | 'Game Console' | 'Other';
+  brand: string;
+  model: string;
+  imeiSerial?: string;
+  carrier?: string;
+  color?: string;
+  storage?: string;
+  passcode?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Repair {
   id: string;
   number: string;
   customerId: string;
   customerName: string;
   customerPhone: string;
+  deviceId?: string;
   deviceType: string;
   brand: string;
   model: string;
