@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import RepairIntakeWidget from './RepairIntakeWidget';
+import RepairIntakeWidgetV2 from './RepairIntakeWidgetV2';
 import ReportsNavWidget from './ReportsNavWidget';
 import InventoryManagerWidget from './InventoryManagerWidget';
 import RepairPrintWidget from './RepairPrintWidget';
@@ -11,7 +11,6 @@ import CustomerCenterWidget from './CustomerCenterWidget';
 import InventoryCenterWidget from './InventoryCenterWidget';
 import OpenInventoryFormBridge from './OpenInventoryFormBridge';
 import PosCatalogManagerWidget from './PosCatalogManagerWidget';
-import StrictRepairPartFilter from './StrictRepairPartFilter';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -28,7 +27,7 @@ import './posCatalogManager.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
-    <RepairIntakeWidget />
+    <RepairIntakeWidgetV2 />
     <ReportsNavWidget />
     <InventoryManagerWidget />
     <RepairPrintWidget />
@@ -38,6 +37,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <InventoryCenterWidget />
     <OpenInventoryFormBridge />
     <PosCatalogManagerWidget />
-    <StrictRepairPartFilter />
   </React.StrictMode>,
 );
