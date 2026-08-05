@@ -7,6 +7,7 @@ import InventoryManagerWidget from './InventoryManagerWidget';
 import RepairPrintWidget from './RepairPrintWidget';
 import SalesReceiptWidget from './SalesReceiptWidget';
 import RepairManagerWidget from './RepairManagerWidget';
+import RepairPartsManagerWidget from './RepairPartsManagerWidget';
 import CustomerCenterWidget from './CustomerCenterWidget';
 import InventoryCenterWidget from './InventoryCenterWidget';
 import OpenInventoryFormBridge from './OpenInventoryFormBridge';
@@ -33,6 +34,7 @@ import './inventoryManager.css';
 import './repairPrint.css';
 import './salesReceipt.css';
 import './repairManager.css';
+import './repairPartsManager.css';
 import './customerCenter.css';
 import './inventoryCenter.css';
 import './posCatalogManager.css';
@@ -62,6 +64,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <RepairPrintWidget />
     <SalesReceiptWidget />
     <RepairManagerWidget />
+    <RepairPartsManagerWidget />
     <CustomerCenterWidget />
     <InventoryCenterWidget />
     <OpenInventoryFormBridge />
