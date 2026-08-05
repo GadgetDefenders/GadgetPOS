@@ -22,6 +22,7 @@ import DeviceHistoryCenterWidget from './DeviceHistoryCenterWidget';
 import QuickActionBarWidget from './QuickActionBarWidget';
 import ReportsDataCenterWidget from './ReportsDataCenterWidget';
 import BackupRestoreWidget from './BackupRestoreWidget';
+import InventoryReceivingWidget from './InventoryReceivingWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -46,6 +47,7 @@ import './deviceHistoryCenter.css';
 import './quickActionBar.css';
 import './reportsDataCenter.css';
 import './backupRestore.css';
+import './inventoryReceiving.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -55,6 +57,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ReportsNavWidget />
     <ReportsDataCenterWidget />
     <BackupRestoreWidget />
+    <InventoryReceivingWidget />
     <InventoryManagerWidget />
     <RepairPrintWidget />
     <SalesReceiptWidget />
