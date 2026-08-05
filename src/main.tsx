@@ -14,6 +14,7 @@ import PosCatalogManagerWidget from './PosCatalogManagerWidget';
 import RepairCloseoutWidget from './RepairCloseoutWidget';
 import SmartRepairCheckInWidget from './SmartRepairCheckInWidget';
 import DashboardCommandCenterWidget from './DashboardCommandCenterWidget';
+import LabelCenterWidget from './LabelCenterWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -30,6 +31,7 @@ import './repairCloseout.css';
 import './smartRepairCheckIn.css';
 import './dashboardCommandCenter.css';
 import './reportsCenter.css';
+import './labelCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -47,5 +49,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <RepairCloseoutWidget />
     <SmartRepairCheckInWidget />
     <DashboardCommandCenterWidget />
+    <LabelCenterWidget />
   </React.StrictMode>,
 );
