@@ -18,6 +18,7 @@ import LabelCenterWidget from './LabelCenterWidget';
 import CustomerNotificationCenterWidget from './CustomerNotificationCenterWidget';
 import RepairTimelineCenterWidget from './RepairTimelineCenterWidget';
 import WarrantyCenterWidget from './WarrantyCenterWidget';
+import DeviceHistoryCenterWidget from './DeviceHistoryCenterWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -38,6 +39,7 @@ import './labelCenter.css';
 import './customerNotificationCenter.css';
 import './repairTimelineCenter.css';
 import './warrantyCenter.css';
+import './deviceHistoryCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -59,5 +61,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <CustomerNotificationCenterWidget />
     <RepairTimelineCenterWidget />
     <WarrantyCenterWidget />
+    <DeviceHistoryCenterWidget />
   </React.StrictMode>,
 );
