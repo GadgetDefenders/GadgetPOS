@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, Boxes, ChevronDown, ChevronUp, Clock3, PackagePlus, Printer, Search, ShoppingCart, Smartphone, UserRound, Wrench, X } from 'lucide-react';
+import { Boxes, ChevronDown, ChevronUp, Clock3, Printer, Search, ShoppingCart, Smartphone, UserRound, Wrench, X } from 'lucide-react';
 import { storage } from './storage';
 
 type Result={id:string;type:'Customer'|'Repair'|'Device'|'Inventory'|'Sale';title:string;detail:string;searchText:string};
@@ -28,10 +28,6 @@ export default function QuickActionBarWidget(){
    {!collapsed&&<div className="quick-action-dock-items">
     <button title="New Repair (F2)" onClick={newRepair}><Wrench/><span>New Repair</span></button>
     <button title="Checkout (F3)" onClick={()=>clickSidebar('POS')}><ShoppingCart/><span>Checkout</span></button>
-    <button onClick={()=>clickSidebar('Customers')}><UserRound/><span>Customers</span></button>
-    <button title="Inventory (F5)" onClick={()=>clickSidebar('Inventory')}><Boxes/><span>Inventory</span></button>
-    <button className="dock-highlight" onClick={()=>clickSidebar('Receive Inventory')}><PackagePlus/><span>Receive</span></button>
-    <button onClick={()=>clickSidebar('Reports')}><BarChart3/><span>Reports</span></button>
     <button title="Search (F4)" onClick={()=>setSearchOpen(true)}><Search/><span>Search</span></button>
     <button title="Print (Ctrl/Cmd + P)" onClick={()=>window.print()}><Printer/><span>Print</span></button>
    </div>}
