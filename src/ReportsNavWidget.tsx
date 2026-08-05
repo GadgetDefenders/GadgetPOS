@@ -9,13 +9,25 @@ export default function ReportsNavWidget(){
   useEffect(()=>{
     const nav=document.querySelector('.sidebar nav');
     if(!nav||document.getElementById('gadgetpos-reports-nav')) return;
+
     const button=document.createElement('button');
     button.id='gadgetpos-reports-nav';
     button.type='button';
     button.innerHTML='<span class="reports-nav-icon">▥</span><span>Reports</span>';
     button.addEventListener('click',()=>setOpen(true));
     nav.appendChild(button);
-    return()=>button.remove();
+
+    const closeReports=(event:Event)=>{
+      const target=event.target as HTMLElement;
+      const clickedButton=target.closest('button');
+      if(clickedButton && clickedButton.id!=='gadgetpos-reports-nav') setOpen(false);
+    };
+
+    nav.addEventListener('click',closeReports);
+    return()=>{
+      nav.removeEventListener('click',closeReports);
+      button.remove();
+    };
   },[]);
 
   useEffect(()=>{
