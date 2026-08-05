@@ -1,9 +1,10 @@
-import type { Customer, InventoryItem, Repair } from './types';
+import type { Customer, InventoryItem, Repair, RepairTimelineEntry } from './types';
 
 const KEYS = {
   customers: 'gadgetpos_customers_v1',
   repairs: 'gadgetpos_repairs_v1',
   inventory: 'gadgetpos_inventory_v1',
+  timeline: 'gadgetpos_timeline_v1',
 };
 
 function read<T>(key: string): T[] {
@@ -25,4 +26,6 @@ export const storage = {
   saveRepairs: (values: Repair[]) => write(KEYS.repairs, values),
   getInventory: () => read<InventoryItem>(KEYS.inventory),
   saveInventory: (values: InventoryItem[]) => write(KEYS.inventory, values),
+  getTimeline: () => read<RepairTimelineEntry>(KEYS.timeline),
+  saveTimeline: (values: RepairTimelineEntry[]) => write(KEYS.timeline, values),
 };
