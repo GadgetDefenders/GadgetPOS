@@ -11,6 +11,7 @@ import CustomerCenterWidget from './CustomerCenterWidget';
 import InventoryCenterWidget from './InventoryCenterWidget';
 import OpenInventoryFormBridge from './OpenInventoryFormBridge';
 import PosCatalogManagerWidget from './PosCatalogManagerWidget';
+import PosBackButtonWidget from './PosBackButtonWidget';
 import RepairCloseoutWidget from './RepairCloseoutWidget';
 import SmartRepairCheckInWidget from './SmartRepairCheckInWidget';
 import DashboardCommandCenterWidget from './DashboardCommandCenterWidget';
@@ -25,6 +26,7 @@ import InventoryReceivingWidget from './InventoryReceivingWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
+import './posBackButton.css';
 import './repairIntake.css';
 import './commercial.css';
 import './inventoryManager.css';
@@ -50,6 +52,7 @@ import './inventoryReceiving.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
+    <PosBackButtonWidget />
     <RepairIntakeWidgetV2 />
     <ReportsNavWidget />
     <ReportsDataCenterWidget />
