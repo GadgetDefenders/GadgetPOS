@@ -36,8 +36,18 @@ export interface Repair {
   priority: 'Normal' | 'High' | 'Urgent';
   estimate: number;
   createdAt: string;
+  updatedAt?: string;
   dueDate?: string;
   notes?: string;
+}
+
+export interface RepairTimelineEntry {
+  id: string;
+  repairId: string;
+  action: string;
+  notes?: string;
+  employee: string;
+  createdAt: string;
 }
 
 export interface InventoryItem {
