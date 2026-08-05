@@ -11,6 +11,7 @@ import CustomerCenterWidget from './CustomerCenterWidget';
 import InventoryCenterWidget from './InventoryCenterWidget';
 import OpenInventoryFormBridge from './OpenInventoryFormBridge';
 import PosCatalogManagerWidget from './PosCatalogManagerWidget';
+import StrictRepairPartFilter from './StrictRepairPartFilter';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -37,5 +38,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <InventoryCenterWidget />
     <OpenInventoryFormBridge />
     <PosCatalogManagerWidget />
+    <StrictRepairPartFilter />
   </React.StrictMode>,
 );
