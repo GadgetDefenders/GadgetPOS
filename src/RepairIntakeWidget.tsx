@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Settings2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Printer, Settings2, ShoppingCart, X } from 'lucide-react';
 import { storage } from './storage';
 import type { InventoryItem, Repair, RepairStatus } from './types';
 
@@ -36,6 +36,7 @@ export default function RepairIntakeWidget(){
   const [categories,setCategories]=useState<string[]>(()=>JSON.parse(localStorage.getItem('gadgetpos_repair_categories')||'null')||DEFAULT_CATEGORIES);
   const [open,setOpen]=useState(false);
   const [manage,setManage]=useState(false);
+  const [createdRepair,setCreatedRepair]=useState<Repair|null>(null);
   const [step,setStep]=useState<Step>('brand');
   const [category,setCategory]=useState('');
   const [brand,setBrand]=useState('');
@@ -79,19 +80,29 @@ export default function RepairIntakeWidget(){
   },[categories]);
 
   function saveCategories(next:string[]){setCategories(next);localStorage.setItem('gadgetpos_repair_categories',JSON.stringify(next));}
-  function reset(){setOpen(false);setStep('brand');setCategory('');setBrand('');setModel('');setService('');setPartId('');setCustomerName('');setCustomerPhone('');setImei('');setPasscode('');setNotes('');setChecked([]);}
+  function clearForm(){setStep('brand');setCategory('');setBrand('');setModel('');setService('');setPartId('');setCustomerName('');setCustomerPhone('');setImei('');setPasscode('');setNotes('');setChecked([]);}
+  function reset(){setOpen(false);clearForm();}
   function back(){setStep(step==='final'?'part':step==='part'?'service':step==='service'?'model':'brand');}
+  function printTicket(repair:Repair){
+    const popup=window.open('','_blank','width=760,height=900');
+    if(!popup){alert('Allow pop-ups for GadgetPOS so the ticket can print.');return;}
+    const safe=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]||char));
+    popup.document.write(`<!doctype html><html><head><title>${safe(repair.number)} Repair Ticket</title><style>body{font-family:Arial,sans-serif;color:#17283a;margin:28px}.header{border-bottom:3px solid #2678c9;padding-bottom:14px;margin-bottom:20px}.header h1{margin:0}.header p{margin:5px 0}.ticket{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:1px solid #ccd8e2;border-radius:8px;padding:12px}.box.full{grid-column:1/-1}.label{font-size:11px;text-transform:uppercase;color:#687b8d}.value{font-size:16px;font-weight:700;margin-top:4px;white-space:pre-wrap}.signature{margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:40px}.line{border-top:1px solid #17283a;padding-top:5px;font-size:12px}@media print{button{display:none}body{margin:12px}}</style></head><body><div class="header"><h1>Gadget Defenders</h1><p>Repair Check-In Ticket</p><strong>${safe(repair.number)}</strong></div><div class="ticket"><div class="box"><div class="label">Customer</div><div class="value">${safe(repair.customerName)}</div></div><div class="box"><div class="label">Phone</div><div class="value">${safe(repair.customerPhone)}</div></div><div class="box"><div class="label">Device</div><div class="value">${safe(repair.brand)} ${safe(repair.model)}</div></div><div class="box"><div class="label">IMEI / Serial</div><div class="value">${safe(repair.serial||'—')}</div></div><div class="box full"><div class="label">Repair / Issue</div><div class="value">${safe(repair.issue)}</div></div><div class="box"><div class="label">Part</div><div class="value">${safe(repair.part||'No part selected')}</div></div><div class="box"><div class="label">Estimate</div><div class="value">$${Number(repair.estimate||0).toFixed(2)}</div></div><div class="box"><div class="label">Status</div><div class="value">${safe(repair.status)}</div></div><div class="box"><div class="label">Technician</div><div class="value">${safe(repair.technician||'Unassigned')}</div></div><div class="box full"><div class="label">Notes / Warranty / Checklist</div><div class="value">${safe(repair.notes||'—')}</div></div></div><div class="signature"><div class="line">Customer Signature</div><div class="line">Employee Signature</div></div><script>window.onload=()=>window.print();</script></body></html>`);
+    popup.document.close();
+  }
   function createTicket(){
     if(!customerName.trim()||!customerPhone.trim()||!brand||!model||!service){alert('Please complete the customer, brand, model, and repair fields.');return;}
     const repairs=storage.getRepairs();
     const now=new Date().toISOString();
-    const number=`R-${String(repairs.length+1).padStart(5,'0')}`;
+    const nextNumber=Math.max(0,...repairs.map(r=>Number(String(r.number).replace(/\D/g,''))||0))+1;
+    const number=`R-${String(nextNumber).padStart(5,'0')}`;
     const estimate=selectedPart?.price||0;
-    const repair:Repair={id:crypto.randomUUID(),number,customerId:'walk-in',customerName,customerPhone,deviceType:category,brand,model,serial:imei,passcode,issue:service,part:selectedPart?.name,status,technician,priority:'Normal',estimate,createdAt:now,notes:[`Warranty: ${warranty}`,`Checked in by: ${checkedInBy}`,`Checklist: ${checked.join(', ')||'Not completed'}`,notes].filter(Boolean).join('\n')};
+    const repair:Repair={id:crypto.randomUUID(),number,customerId:'walk-in',customerName:customerName.trim(),customerPhone:customerPhone.trim(),deviceType:category,brand,model,serial:imei,passcode,issue:service,part:selectedPart?.name,status,technician,priority:'Normal',estimate,createdAt:now,notes:[`Warranty: ${warranty}`,`Checked in by: ${checkedInBy}`,`Checklist: ${checked.join(', ')||'Not completed'}`,notes].filter(Boolean).join('\n')};
     storage.saveRepairs([repair,...repairs]);
     window.dispatchEvent(new Event('gadgetpos-data-changed'));
-    alert(`${number} created successfully.`);
-    reset();
+    setOpen(false);
+    setCreatedRepair(repair);
+    clearForm();
   }
 
   const crumb=[category,brand,model,service].filter(Boolean).join(' › ');
@@ -115,5 +126,6 @@ export default function RepairIntakeWidget(){
         <label>Starting Status<select value={status} onChange={e=>setStatus(e.target.value as RepairStatus)}>{STATUSES.map(x=><option key={x}>{x}</option>)}</select></label>
       </div><div className="ri-checklist"><strong>Device Checklist</strong>{CHECKLIST.map(item=><label key={item}><input type="checkbox" checked={checked.includes(item)} onChange={e=>setChecked(e.target.checked?[...checked,item]:checked.filter(x=>x!==item))}/>{item}</label>)}</div><label>Condition / Customer Notes<textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Cracks, dents, liquid indicators, accessories left, customer concerns..."/></label><div className="ri-actions"><button onClick={reset}>Cancel</button><button className="primary" onClick={createTicket}>Create Repair Ticket</button></div></div>}
     </div></div>}
+    {createdRepair&&<div className="ri-backdrop"><div className="ri-modal small ticket-created"><div className="ri-head"><div><h2>Ticket Created</h2><p>{createdRepair.number} · {createdRepair.customerName}</p></div><button onClick={()=>setCreatedRepair(null)}><X/></button></div><div className="ri-selected"><strong>{createdRepair.brand} {createdRepair.model}</strong><span>{createdRepair.issue}</span><span>Estimate: ${Number(createdRepair.estimate||0).toFixed(2)}</span></div><div className="ri-actions ticket-created-actions"><button onClick={()=>printTicket(createdRepair)}><Printer size={17}/>Print Ticket</button><button className="primary" onClick={()=>{window.dispatchEvent(new CustomEvent('gadgetpos-add-repair',{detail:{repairId:createdRepair.id}}));setCreatedRepair(null)}}><ShoppingCart size={17}/>Add to Checkout</button></div></div></div>}
   </>;
 }
