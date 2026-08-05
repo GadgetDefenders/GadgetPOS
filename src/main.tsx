@@ -13,6 +13,7 @@ import OpenInventoryFormBridge from './OpenInventoryFormBridge';
 import PosCatalogManagerWidget from './PosCatalogManagerWidget';
 import RepairCloseoutWidget from './RepairCloseoutWidget';
 import SmartRepairCheckInWidget from './SmartRepairCheckInWidget';
+import DashboardCommandCenterWidget from './DashboardCommandCenterWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -27,6 +28,7 @@ import './inventoryCenter.css';
 import './posCatalogManager.css';
 import './repairCloseout.css';
 import './smartRepairCheckIn.css';
+import './dashboardCommandCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -43,5 +45,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <PosCatalogManagerWidget />
     <RepairCloseoutWidget />
     <SmartRepairCheckInWidget />
+    <DashboardCommandCenterWidget />
   </React.StrictMode>,
 );
