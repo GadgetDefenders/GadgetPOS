@@ -11,6 +11,7 @@ import './posTabs.css';
 import './repairIntake.css';
 import './commercial.css';
 import './inventoryManager.css';
+import './repairPrint.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
