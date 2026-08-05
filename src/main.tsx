@@ -9,6 +9,7 @@ import SalesReceiptWidget from './SalesReceiptWidget';
 import RepairManagerWidget from './RepairManagerWidget';
 import CustomerCenterWidget from './CustomerCenterWidget';
 import InventoryCenterWidget from './InventoryCenterWidget';
+import OpenInventoryFormBridge from './OpenInventoryFormBridge';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -32,5 +33,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <RepairManagerWidget />
     <CustomerCenterWidget />
     <InventoryCenterWidget />
+    <OpenInventoryFormBridge />
   </React.StrictMode>,
 );
