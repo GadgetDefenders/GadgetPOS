@@ -8,6 +8,7 @@ export type RepairStatus =
   | 'Completed';
 
 export type InventoryCategory = 'Phone' | 'Accessory' | 'Prepaid Service' | 'Repair Part';
+export type PaymentMethod = 'Cash' | 'Card' | 'Split' | 'Other';
 
 export interface Customer {
   id: string;
@@ -74,4 +75,30 @@ export interface InventoryItem {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CartLine {
+  id: string;
+  kind: 'Inventory' | 'Repair';
+  referenceId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  taxable: boolean;
+}
+
+export interface Sale {
+  id: string;
+  number: string;
+  customerId?: string;
+  customerName?: string;
+  lines: CartLine[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  amountTendered?: number;
+  changeDue?: number;
+  notes?: string;
+  createdAt: string;
 }
