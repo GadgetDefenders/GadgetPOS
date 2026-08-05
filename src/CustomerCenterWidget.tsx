@@ -1,76 +1,50 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Printer, ShoppingCart, X } from 'lucide-react';
+import { Laptop, Pencil, Plus, Smartphone, Trash2, Watch, X } from 'lucide-react';
 import { storage } from './storage';
-import type { Customer } from './types';
+import type { Customer, CustomerDevice } from './types';
+
+const emptyDevice=()=>({deviceType:'Phone' as CustomerDevice['deviceType'],brand:'',model:'',imeiSerial:'',carrier:'',color:'',storage:'',passcode:'',notes:''});
 
 export default function CustomerCenterWidget(){
-  const [visible,setVisible]=useState(false);
-  const [customers,setCustomers]=useState(storage.getCustomers());
-  const [selectedId,setSelectedId]=useState<string|null>(null);
-  const [adding,setAdding]=useState(false);
-  const [name,setName]=useState('');
-  const [phone,setPhone]=useState('');
-  const [email,setEmail]=useState('');
-  const [notes,setNotes]=useState('');
+  const [visible,setVisible]=useState(false),[customers,setCustomers]=useState(storage.getCustomers()),[selectedId,setSelectedId]=useState<string|null>(null),[adding,setAdding]=useState(false);
+  const [name,setName]=useState(''),[phone,setPhone]=useState(''),[email,setEmail]=useState(''),[notes,setNotes]=useState('');
+  const [devices,setDevices]=useState(storage.getDevices()),[deviceOpen,setDeviceOpen]=useState(false),[editingDeviceId,setEditingDeviceId]=useState('');
+  const [deviceForm,setDeviceForm]=useState(emptyDevice());
 
   useEffect(()=>{
-    const sync=()=>{setVisible(document.querySelector('.topbar h1')?.textContent?.trim()==='Customers');setCustomers(storage.getCustomers())};
+    const sync=()=>{setVisible(document.querySelector('.topbar h1')?.textContent?.trim()==='Customers');setCustomers(storage.getCustomers());setDevices(storage.getDevices())};
     sync();
     const observer=new MutationObserver(sync);observer.observe(document.body,{subtree:true,childList:true,characterData:true});
-    const click=(e:MouseEvent)=>{
-      if(document.querySelector('.topbar h1')?.textContent?.trim()!=='Customers')return;
-      const row=(e.target as HTMLElement).closest('tbody tr');
-      if(!row)return;
-      const cells=row.querySelectorAll('td');
-      const rowName=cells[0]?.textContent?.trim()||'';
-      const rowPhone=cells[1]?.textContent?.trim()||'';
-      const customer=storage.getCustomers().find(c=>c.name===rowName&&c.phone===rowPhone);
-      if(customer)openCustomer(customer);
-    };
-    document.addEventListener('click',click);
-    window.addEventListener('gadgetpos-data-changed',sync);
+    const click=(e:MouseEvent)=>{if(document.querySelector('.topbar h1')?.textContent?.trim()!=='Customers')return;const row=(e.target as HTMLElement).closest('tbody tr');if(!row)return;const cells=row.querySelectorAll('td');const c=storage.getCustomers().find(x=>x.name===cells[0]?.textContent?.trim()&&x.phone===cells[1]?.textContent?.trim());if(c)openCustomer(c)};
+    document.addEventListener('click',click);window.addEventListener('gadgetpos-data-changed',sync);
     return()=>{observer.disconnect();document.removeEventListener('click',click);window.removeEventListener('gadgetpos-data-changed',sync)};
   },[]);
 
   const selected=customers.find(c=>c.id===selectedId)||null;
-  const repairs=useMemo(()=>selected?storage.getRepairs().filter(r=>r.customerId===selected.id||r.customerPhone===selected.phone||r.customerName.toLowerCase()===selected.name.toLowerCase()):[],[selectedId,customers]);
+  const customerDevices=useMemo(()=>devices.filter(d=>d.customerId===selectedId),[devices,selectedId]);
+  const repairs=useMemo(()=>selected?storage.getRepairs().filter(r=>r.customerId===selected.id||r.customerPhone===selected.phone):[],[selectedId,customers]);
   const sales=useMemo(()=>selected?storage.getSales().filter(s=>s.customerId===selected.id||s.customerName?.toLowerCase()===selected.name.toLowerCase()):[],[selectedId,customers]);
-  const totalSpent=sales.reduce((sum,s)=>sum+s.total,0);
-  const openRepairs=repairs.filter(r=>r.status!=='Completed');
-  const lastVisit=[...sales.map(s=>s.createdAt),...repairs.map(r=>r.createdAt)].sort().reverse()[0];
+  const totalSpent=sales.reduce((sum,s)=>sum+s.total,0),openRepairs=repairs.filter(r=>r.status!=='Completed');
 
   function openCustomer(c:Customer){setSelectedId(c.id);setAdding(false);setName(c.name);setPhone(c.phone);setEmail(c.email||'');setNotes(c.notes||'')}
   function openAdd(){setSelectedId(null);setAdding(true);setName('');setPhone('');setEmail('');setNotes('')}
-  function close(){setSelectedId(null);setAdding(false)}
-  function save(){
-    if(!name.trim()||!phone.trim()){alert('Customer name and phone are required.');return;}
-    const now=new Date().toISOString();
-    const all=storage.getCustomers();
-    if(selected){
-      const next=all.map(c=>c.id===selected.id?{...c,name:name.trim(),phone:phone.trim(),email:email.trim()||undefined,notes:notes.trim()||undefined,updatedAt:now}:c);
-      storage.saveCustomers(next);setCustomers(next);setSelectedId(selected.id);
-    }else{
-      const c:Customer={id:crypto.randomUUID(),name:name.trim(),phone:phone.trim(),email:email.trim()||undefined,notes:notes.trim()||undefined,createdAt:now};
-      const next=[c,...all];storage.saveCustomers(next);setCustomers(next);setSelectedId(c.id);setAdding(false);
-    }
-    window.dispatchEvent(new Event('gadgetpos-data-changed'));
-  }
-  function remove(){if(!selected||!confirm(`Delete ${selected.name}? Their repairs and sales will remain in history.`))return;const next=storage.getCustomers().filter(c=>c.id!==selected.id);storage.saveCustomers(next);setCustomers(next);close();window.dispatchEvent(new Event('gadgetpos-data-changed'))}
-  function printHistory(){
-    if(!selected)return;
-    const frame=document.createElement('iframe');frame.style.position='fixed';frame.style.width='0';frame.style.height='0';frame.style.border='0';document.body.appendChild(frame);
-    const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]||c));
-    const rows=[...repairs.map(r=>({date:r.createdAt,type:'Repair',detail:`${r.number} · ${r.brand} ${r.model} · ${r.issue}`,amount:r.estimate})),...sales.map(s=>({date:s.createdAt,type:'Sale',detail:s.number,amount:s.total}))].sort((a,b)=>b.date.localeCompare(a.date));
-    frame.contentDocument?.write(`<!doctype html><html><head><style>body{font-family:Arial;margin:28px;color:#17283a}h1{margin-bottom:3px}.muted{color:#687b8d}.stats{display:flex;gap:14px;margin:20px 0}.stats div{border:1px solid #ccd8e2;padding:12px;flex:1}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:9px;text-align:left}th{background:#f3f6f9}</style></head><body><h1>Gadget Defenders</h1><div class="muted">Customer History Report</div><h2>${esc(selected.name)}</h2><div>${esc(selected.phone)} · ${esc(selected.email||'No email')}</div><div class="stats"><div>Total Spent<br><b>$${totalSpent.toFixed(2)}</b></div><div>Repairs<br><b>${repairs.length}</b></div><div>Open Repairs<br><b>${openRepairs.length}</b></div></div><table><thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Amount</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${new Date(x.date).toLocaleDateString()}</td><td>${x.type}</td><td>${esc(x.detail)}</td><td>$${Number(x.amount||0).toFixed(2)}</td></tr>`).join('')}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);frame.contentDocument?.close();setTimeout(()=>frame.remove(),30000)
-  }
-  function openCheckout(){document.querySelectorAll('.sidebar nav button').forEach(b=>{if(b.textContent?.trim()==='POS')(b as HTMLButtonElement).click()});close()}
+  function close(){setSelectedId(null);setAdding(false);setDeviceOpen(false)}
+  function saveCustomer(){if(!name.trim()||!phone.trim()){alert('Customer name and phone are required.');return}const now=new Date().toISOString(),all=storage.getCustomers();if(selected){const next=all.map(c=>c.id===selected.id?{...c,name:name.trim(),phone:phone.trim(),email:email.trim()||undefined,notes:notes.trim()||undefined,updatedAt:now}:c);storage.saveCustomers(next);setCustomers(next)}else{const c:Customer={id:crypto.randomUUID(),name:name.trim(),phone:phone.trim(),email:email.trim()||undefined,notes:notes.trim()||undefined,createdAt:now};const next=[c,...all];storage.saveCustomers(next);setCustomers(next);setSelectedId(c.id);setAdding(false)}window.dispatchEvent(new Event('gadgetpos-data-changed'))}
+  function editDevice(d:CustomerDevice){setEditingDeviceId(d.id);setDeviceForm({deviceType:d.deviceType,brand:d.brand,model:d.model,imeiSerial:d.imeiSerial||'',carrier:d.carrier||'',color:d.color||'',storage:d.storage||'',passcode:d.passcode||'',notes:d.notes||''});setDeviceOpen(true)}
+  function addDevice(){if(!selected){alert('Save the customer before adding a device.');return}setEditingDeviceId('');setDeviceForm(emptyDevice());setDeviceOpen(true)}
+  function saveDevice(){if(!selected||!deviceForm.brand.trim()||!deviceForm.model.trim()){alert('Brand and model are required.');return}const now=new Date().toISOString(),all=storage.getDevices();const record:CustomerDevice={id:editingDeviceId||crypto.randomUUID(),customerId:selected.id,deviceType:deviceForm.deviceType,brand:deviceForm.brand.trim(),model:deviceForm.model.trim(),imeiSerial:deviceForm.imeiSerial.trim()||undefined,carrier:deviceForm.carrier.trim()||undefined,color:deviceForm.color.trim()||undefined,storage:deviceForm.storage.trim()||undefined,passcode:deviceForm.passcode.trim()||undefined,notes:deviceForm.notes.trim()||undefined,createdAt:all.find(d=>d.id===editingDeviceId)?.createdAt||now,updatedAt:now};const next=editingDeviceId?all.map(d=>d.id===editingDeviceId?record:d):[record,...all];storage.saveDevices(next);setDevices(next);setDeviceOpen(false);window.dispatchEvent(new Event('gadgetpos-data-changed'))}
+  function removeDevice(id:string){if(!confirm('Remove this saved device? Repair history will remain.'))return;const next=storage.getDevices().filter(d=>d.id!==id);storage.saveDevices(next);setDevices(next);window.dispatchEvent(new Event('gadgetpos-data-changed'))}
+  function icon(type:CustomerDevice['deviceType']){if(type==='Computer')return <Laptop size={19}/>;if(type==='Apple Watch')return <Watch size={19}/>;return <Smartphone size={19}/>}
 
   return <>
     {visible&&<button className="customer-add-button" onClick={openAdd}><Plus size={17}/>Add Customer</button>}
     {(selected||adding)&&<div className="customer-center-backdrop"><div className="customer-center"><div className="customer-center-head"><div><h2>{selected?'Customer Profile':'Add Customer'}</h2><p>{selected?`${selected.name} · ${selected.phone}`:'Create a new customer record'}</p></div><button onClick={close}><X/></button></div>
       <div className="customer-profile-grid"><label>Name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Phone<input value={phone} onChange={e=>setPhone(e.target.value)}/></label><label>Email<input value={email} onChange={e=>setEmail(e.target.value)}/></label><label className="full">Customer Notes<textarea value={notes} onChange={e=>setNotes(e.target.value)}/></label></div>
-      {selected&&<><div className="customer-stats"><article><span>Total Spent</span><strong>${totalSpent.toFixed(2)}</strong></article><article><span>Repairs</span><strong>{repairs.length}</strong></article><article><span>Open Tickets</span><strong>{openRepairs.length}</strong></article><article><span>Last Visit</span><strong>{lastVisit?new Date(lastVisit).toLocaleDateString():'—'}</strong></article></div><div className="customer-history"><h3>Customer History</h3>{[...repairs.map(r=>({id:r.id,date:r.createdAt,title:`${r.number} · ${r.brand} ${r.model}`,detail:r.issue,amount:r.estimate,status:r.status})),...sales.map(s=>({id:s.id,date:s.createdAt,title:s.number,detail:`${s.lines.length} item${s.lines.length===1?'':'s'} · ${s.paymentMethod}`,amount:s.total,status:'Paid'}))].sort((a,b)=>b.date.localeCompare(a.date)).map(x=><div key={x.id}><div><strong>{x.title}</strong><span>{new Date(x.date).toLocaleDateString()} · {x.detail}</span></div><div><b>${Number(x.amount||0).toFixed(2)}</b><small>{x.status}</small></div></div>)}{!repairs.length&&!sales.length&&<p>No repair or purchase history yet.</p>}</div></>}
-      <div className="customer-center-actions">{selected&&<button className="danger" onClick={remove}>Delete</button>}<button onClick={close}>Cancel</button>{selected&&<button onClick={printHistory}><Printer size={16}/>Print History</button>}{selected&&<button onClick={openCheckout}><ShoppingCart size={16}/>Open Checkout</button>}<button className="primary" onClick={save}>Save Customer</button></div>
+      {selected&&<><div className="customer-stats"><article><span>Total Spent</span><strong>${totalSpent.toFixed(2)}</strong></article><article><span>Repairs</span><strong>{repairs.length}</strong></article><article><span>Open Tickets</span><strong>{openRepairs.length}</strong></article><article><span>Saved Devices</span><strong>{customerDevices.length}</strong></article></div>
+      <section className="customer-devices"><div className="customer-section-head"><div><h3>Registered Devices</h3><p>Save each customer device once and reuse it for future repairs.</p></div><button onClick={addDevice}><Plus size={16}/>Add Device</button></div><div className="device-card-grid">{customerDevices.map(d=><article key={d.id}><div className="device-icon">{icon(d.deviceType)}</div><div className="device-info"><strong>{d.brand} {d.model}</strong><span>{[d.deviceType,d.storage,d.color,d.carrier].filter(Boolean).join(' · ')}</span><small>{d.imeiSerial||'No IMEI / serial saved'}</small></div><div className="device-actions"><button onClick={()=>editDevice(d)}><Pencil size={15}/></button><button onClick={()=>removeDevice(d.id)}><Trash2 size={15}/></button></div></article>)}{!customerDevices.length&&<div className="empty-devices">No devices saved for this customer yet.</div>}</div></section>
+      <div className="customer-history"><h3>Customer History</h3>{[...repairs.map(r=>({id:r.id,date:r.createdAt,title:`${r.number} · ${r.brand} ${r.model}`,detail:r.issue,amount:r.estimate,status:r.status})),...sales.map(s=>({id:s.id,date:s.createdAt,title:s.number,detail:`${s.lines.length} item${s.lines.length===1?'':'s'} · ${s.paymentMethod}`,amount:s.total,status:'Paid'}))].sort((a,b)=>b.date.localeCompare(a.date)).map(x=><div key={x.id}><div><strong>{x.title}</strong><span>{new Date(x.date).toLocaleDateString()} · {x.detail}</span></div><div><b>${Number(x.amount||0).toFixed(2)}</b><small>{x.status}</small></div></div>)}{!repairs.length&&!sales.length&&<p>No repair or purchase history yet.</p>}</div></>}
+      <div className="customer-center-actions"><button onClick={close}>Cancel</button><button className="primary" onClick={saveCustomer}>Save Customer</button></div>
     </div></div>}
+    {deviceOpen&&<div className="customer-center-backdrop device-layer"><div className="device-editor"><div className="customer-center-head"><div><h2>{editingDeviceId?'Edit Device':'Add Device'}</h2><p>{selected?.name}</p></div><button onClick={()=>setDeviceOpen(false)}><X/></button></div><div className="device-form-grid"><label>Device Type<select value={deviceForm.deviceType} onChange={e=>setDeviceForm({...deviceForm,deviceType:e.target.value as CustomerDevice['deviceType']})}><option>Phone</option><option>Tablet</option><option>Computer</option><option>Apple Watch</option><option>Game Console</option><option>Other</option></select></label><label>Brand<input value={deviceForm.brand} onChange={e=>setDeviceForm({...deviceForm,brand:e.target.value})}/></label><label>Model<input value={deviceForm.model} onChange={e=>setDeviceForm({...deviceForm,model:e.target.value})}/></label><label>IMEI / Serial<input value={deviceForm.imeiSerial} onChange={e=>setDeviceForm({...deviceForm,imeiSerial:e.target.value})}/></label><label>Carrier<input value={deviceForm.carrier} onChange={e=>setDeviceForm({...deviceForm,carrier:e.target.value})}/></label><label>Storage<input value={deviceForm.storage} onChange={e=>setDeviceForm({...deviceForm,storage:e.target.value})}/></label><label>Color<input value={deviceForm.color} onChange={e=>setDeviceForm({...deviceForm,color:e.target.value})}/></label><label>Passcode<input value={deviceForm.passcode} onChange={e=>setDeviceForm({...deviceForm,passcode:e.target.value})}/></label><label className="full">Device Notes<textarea value={deviceForm.notes} onChange={e=>setDeviceForm({...deviceForm,notes:e.target.value})}/></label></div><div className="customer-center-actions"><button onClick={()=>setDeviceOpen(false)}>Cancel</button><button className="primary" onClick={saveDevice}>Save Device</button></div></div></div>}
   </>;
 }
