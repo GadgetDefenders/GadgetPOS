@@ -7,6 +7,7 @@ import InventoryManagerWidget from './InventoryManagerWidget';
 import RepairPrintWidget from './RepairPrintWidget';
 import SalesReceiptWidget from './SalesReceiptWidget';
 import RepairManagerWidget from './RepairManagerWidget';
+import CustomerCenterWidget from './CustomerCenterWidget';
 import './styles.css';
 import './pos.css';
 import './posTabs.css';
@@ -16,6 +17,7 @@ import './inventoryManager.css';
 import './repairPrint.css';
 import './salesReceipt.css';
 import './repairManager.css';
+import './customerCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -26,5 +28,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <RepairPrintWidget />
     <SalesReceiptWidget />
     <RepairManagerWidget />
+    <CustomerCenterWidget />
   </React.StrictMode>,
 );
