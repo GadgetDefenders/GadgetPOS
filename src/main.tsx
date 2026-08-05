@@ -19,7 +19,6 @@ import CustomerNotificationCenterWidget from './CustomerNotificationCenterWidget
 import RepairTimelineCenterWidget from './RepairTimelineCenterWidget';
 import WarrantyCenterWidget from './WarrantyCenterWidget';
 import DeviceHistoryCenterWidget from './DeviceHistoryCenterWidget';
-import QuickActionBarWidget from './QuickActionBarWidget';
 import ReportsDataCenterWidget from './ReportsDataCenterWidget';
 import BackupRestoreWidget from './BackupRestoreWidget';
 import InventoryReceivingWidget from './InventoryReceivingWidget';
@@ -44,7 +43,6 @@ import './customerNotificationCenter.css';
 import './repairTimelineCenter.css';
 import './warrantyCenter.css';
 import './deviceHistoryCenter.css';
-import './quickActionBar.css';
 import './reportsDataCenter.css';
 import './backupRestore.css';
 import './inventoryReceiving.css';
@@ -52,7 +50,6 @@ import './inventoryReceiving.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
-    <QuickActionBarWidget />
     <RepairIntakeWidgetV2 />
     <ReportsNavWidget />
     <ReportsDataCenterWidget />
