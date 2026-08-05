@@ -29,6 +29,7 @@ import './posCatalogManager.css';
 import './repairCloseout.css';
 import './smartRepairCheckIn.css';
 import './dashboardCommandCenter.css';
+import './reportsCenter.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
