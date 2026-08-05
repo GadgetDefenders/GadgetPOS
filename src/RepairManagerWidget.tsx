@@ -4,88 +4,21 @@ import { storage } from './storage';
 import type { Repair, RepairStatus } from './types';
 
 const ACTIVE_STATUSES: RepairStatus[]=['Checked In','Diagnosing','Waiting on Parts','Repairing','Ready for Pickup'];
+const safe=(value:unknown)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]||c));
+const CODE39:Record<string,string>={'0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn','4':'nnnwwnnnw','5':'wnnwwnnnn','6':'nnwwwnnnn','7':'nnnwnnwnw','8':'wnnwnnwnn','9':'nnwwnnwnn',A:'wnnnnwnnw',B:'nnwnnwnnw',C:'wnwnnwnnn',D:'nnnnwwnnw',E:'wnnnwwnnn',F:'nnwnwwnnn',G:'nnnnnwwnw',H:'wnnnnwwnn',I:'nnwnnwwnn',J:'nnnnwwwnn',K:'wnnnnnnww',L:'nnwnnnnww',M:'wnwnnnnwn',N:'nnnnwnnww',O:'wnnnwnnwn',P:'nnwnwnnwn',Q:'nnnnnnwww',R:'wnnnnnwwn',S:'nnwnnnwwn',T:'nnnnwnwwn',U:'wwnnnnnnw',V:'nwwnnnnnw',W:'wwwnnnnnn',X:'nwnnwnnnw',Y:'wwnnwnnnn',Z:'nwwnwnnnn','-':'nwnnnnwnw','.':'wwnnnnwnn',' ':'nwwnnnwnn','$':'nwnwnwnnn','/':'nwnwnnnwn','+':'nwnnnwnwn','%':'nnnwnwnwn','*':'nwnnwnwnn'};
 
-function printHtml(html:string){
-  const frame=document.createElement('iframe');
-  frame.style.position='fixed';frame.style.right='0';frame.style.bottom='0';frame.style.width='0';frame.style.height='0';frame.style.border='0';
-  document.body.appendChild(frame);
-  const doc=frame.contentDocument;
-  if(!doc){frame.remove();return;}
-  doc.open();doc.write(html);doc.close();
-  window.setTimeout(()=>{frame.contentWindow?.focus();frame.contentWindow?.print();window.setTimeout(()=>frame.remove(),1200);},250);
-}
-
-const safe=(value:unknown)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]||c));
+function barcodeSvg(value:string){const normalized=value.toUpperCase().replace(/[^0-9A-Z. $/+%-]/g,'-');let x=0;const bars:string[]=[];for(const char of `*${normalized}*`){const pattern=CODE39[char]||CODE39['-'];[...pattern].forEach((kind,index)=>{const width=kind==='w'?5:2;if(index%2===0)bars.push(`<rect x="${x}" y="0" width="${width}" height="42"/>`);x+=width});x+=2}return `<svg class="barcode" viewBox="0 0 ${x} 42" preserveAspectRatio="none"><g fill="#000">${bars.join('')}</g></svg>`}
+function printHtml(html:string){const frame=document.createElement('iframe');frame.style.cssText='position:fixed;width:1px;height:1px;opacity:0;border:0';document.body.appendChild(frame);const doc=frame.contentDocument;if(!doc){frame.remove();return}doc.open();doc.write(html);doc.close();setTimeout(()=>{frame.contentWindow?.focus();frame.contentWindow?.print();setTimeout(()=>frame.remove(),1200)},300)}
+function printDeviceLabel(r:Repair){const device=[r.brand,r.model].filter(Boolean).join(' ');const date=new Date(r.createdAt).toLocaleDateString('en-US');const body=`<section class="label"><div class="top"><div class="brand"><b>GADGET</b><span>DEFENDERS</span><small>CELL PHONE REPAIR</small></div><div class="ticket">TICKET ${safe(r.number)}</div></div><div class="details"><div class="customer"><strong>${safe(r.customerName)}</strong><span>${safe(r.customerPhone)}</span></div><div class="device"><span><b>Device:</b> ${safe(device)}</span><span><b>Repair:</b> ${safe(r.issue)}</span></div></div><div class="barcode-wrap">${barcodeSvg(r.number)}<strong>${safe(r.number)}</strong></div><div class="footer"><span><b>IMEI / SN:</b> ${safe(r.serial||'')}</span><span><b>CODE:</b> ${safe(r.passcode||'')}</span><span><b>DATE:</b> ${safe(date)}</span></div></section>`;printHtml(`<!doctype html><html><head><meta charset="utf-8"><title></title><style>@page{size:88.9mm 28.6mm;margin:0}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;width:88.9mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif}.label{width:88.9mm;height:28.6mm;padding:1.2mm 1.5mm;overflow:hidden;display:grid;grid-template-rows:6.2mm 8.2mm 9.1mm 3.4mm;border:1px solid #000;border-radius:2mm}.top{display:grid;grid-template-columns:34mm 1fr;gap:2mm;border-bottom:1px solid #000;padding-bottom:.8mm}.brand{display:grid;grid-template-columns:auto 1fr;align-content:center;line-height:.9}.brand b{font-size:11px}.brand span{font-size:9px;font-weight:900;color:#4eaa24}.brand small{grid-column:1/-1;font-size:5px;letter-spacing:1px;margin-top:.5mm}.ticket{border:1px solid #000;border-radius:1.2mm;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;white-space:nowrap}.details{display:grid;grid-template-columns:35% 65%;border-bottom:1px solid #000}.customer{display:flex;flex-direction:column;justify-content:center;border-right:1px solid #000;padding-right:1.5mm;min-width:0}.customer strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.customer span{font-size:7px;margin-top:.4mm}.device{display:flex;flex-direction:column;justify-content:center;padding-left:1.8mm;gap:.8mm;min-width:0}.device span{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.device b{font-size:8.5px}.barcode-wrap{display:flex;flex-direction:column;justify-content:center;align-items:center;border-bottom:1px solid #000;padding:.6mm 4mm 0}.barcode{width:100%;height:6.2mm;display:block}.barcode-wrap strong{font-size:7px;letter-spacing:1mm;margin-top:.3mm}.footer{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;font-size:6.5px}.footer span{height:100%;display:flex;align-items:center;padding:0 1.2mm;border-right:1px solid #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.footer span:last-child{border-right:0}@media print{.label{border:1px solid #000}}</style></head><body>${body}</body></html>`)}
 
 export default function RepairManagerWidget(){
-  const [repair,setRepair]=useState<Repair|null>(null);
-  const [draft,setDraft]=useState<Repair|null>(null);
-
-  useEffect(()=>{
-    const click=(event:MouseEvent)=>{
-      const target=event.target as HTMLElement;
-      if(target.closest('button,select,input,textarea,label'))return;
-      const card=target.closest('.repair-card');
-      if(!card)return;
-      const number=card.querySelector('strong')?.textContent?.trim();
-      if(!number)return;
-      const found=storage.getRepairs().find(r=>r.number===number);
-      if(found){setRepair(found);setDraft({...found});}
-    };
-    document.addEventListener('click',click);
-    return()=>document.removeEventListener('click',click);
-  },[]);
-
-  if(!repair||!draft)return null;
-
-  const update=<K extends keyof Repair>(key:K,value:Repair[K])=>setDraft(current=>current?{...current,[key]:value}:current);
-  const close=()=>{setRepair(null);setDraft(null)};
-  const save=()=>{
-    if(!draft.customerName.trim()||!draft.customerPhone.trim()||!draft.brand.trim()||!draft.model.trim()){alert('Customer, phone, brand, and model are required.');return;}
-    const updated={...draft,estimate:Number(draft.estimate)||0,updatedAt:new Date().toISOString()};
-    storage.saveRepairs(storage.getRepairs().map(r=>r.id===updated.id?updated:r));
-    window.dispatchEvent(new Event('gadgetpos-data-changed'));
-    setRepair(updated);setDraft({...updated});
-    alert(`${updated.number} updated.`);
-  };
-  const remove=()=>{
-    if(!confirm(`Delete ${draft.number}? This cannot be undone.`))return;
-    storage.saveRepairs(storage.getRepairs().filter(r=>r.id!==draft.id));
-    window.dispatchEvent(new Event('gadgetpos-data-changed'));
-    close();
-  };
-  const checkout=()=>{
-    save();
-    window.dispatchEvent(new CustomEvent('gadgetpos-add-repair',{detail:{repairId:draft.id}}));
-    close();
-  };
-  const print=(kind:'ticket'|'claim'|'label')=>{
-    const title=kind==='ticket'?'Repair Check-In Ticket':kind==='claim'?'Customer Claim Ticket':'Device Label';
-    const compact=kind!=='ticket';
-    const body=kind==='ticket'?`<div class="grid"><div><b>Customer</b><span>${safe(draft.customerName)}</span></div><div><b>Phone</b><span>${safe(draft.customerPhone)}</span></div><div><b>Device</b><span>${safe(draft.brand)} ${safe(draft.model)}</span></div><div><b>IMEI / Serial</b><span>${safe(draft.serial||'—')}</span></div><div class="full"><b>Repair / Issue</b><span>${safe(draft.issue)}</span></div><div><b>Estimate</b><span>$${Number(draft.estimate||0).toFixed(2)}</span></div><div><b>Status</b><span>${safe(draft.status)}</span></div><div><b>Technician</b><span>${safe(draft.technician||'Unassigned')}</span></div><div><b>Due Date</b><span>${safe(draft.dueDate||'Not set')}</span></div><div class="full"><b>Notes</b><span>${safe(draft.notes||'—')}</span></div></div><div class="sign"><span>Customer Signature</span><span>Employee Signature</span></div>`:kind==='claim'?`<h2>${safe(draft.number)}</h2><p><b>${safe(draft.customerName)}</b></p><p>${safe(draft.brand)} ${safe(draft.model)}</p><p>${safe(draft.issue)}</p><p>Status: ${safe(draft.status)}</p><hr><p>Gadget Defenders · 270-380-1505</p>`:`<h1>${safe(draft.number)}</h1><h2>${safe(draft.customerName)}</h2><p>${safe(draft.brand)} ${safe(draft.model)}</p><p>${safe(draft.issue)}</p><strong>${safe(draft.status)}</strong>`;
-    printHtml(`<!doctype html><html><head><title>${safe(draft.number)} ${title}</title><style>@page{margin:${compact?'8mm':'12mm'}}body{font-family:Arial,sans-serif;color:#17283a;margin:0;${compact?'max-width:320px':''}}header{border-bottom:3px solid #2678c9;margin-bottom:18px;padding-bottom:12px}header h1{margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid div{border:1px solid #ccd8e2;border-radius:8px;padding:10px}.grid .full{grid-column:1/-1}.grid b{display:block;font-size:10px;text-transform:uppercase;color:#687b8d}.grid span{display:block;margin-top:5px;font-weight:700;white-space:pre-wrap}.sign{display:grid;grid-template-columns:1fr 1fr;gap:35px;margin-top:50px}.sign span{border-top:1px solid #17283a;padding-top:5px;font-size:12px}h1,h2,p{margin:7px 0}</style></head><body><header><h1>Gadget Defenders</h1><p>${title}</p></header>${body}</body></html>`);
-  };
-
-  return <div className="rm-backdrop"><div className="rm-modal"><div className="rm-head"><div><span className="rm-ticket">{draft.number}</span><h2>{draft.brand} {draft.model}</h2><p>Created {new Date(draft.createdAt).toLocaleString()}</p></div><button onClick={close}><X/></button></div>
-    <div className="rm-actions-top"><button onClick={()=>print('ticket')}><Printer size={16}/>Full Ticket</button><button onClick={()=>print('claim')}><Printer size={16}/>Claim Ticket</button><button onClick={()=>print('label')}><Printer size={16}/>Device Label</button><button className="primary" onClick={checkout}><CreditCard size={16}/>Send to Checkout</button></div>
-    <div className="rm-grid">
-      <label>Customer Name<input value={draft.customerName} onChange={e=>update('customerName',e.target.value)}/></label>
-      <label>Customer Phone<input value={draft.customerPhone} onChange={e=>update('customerPhone',e.target.value)}/></label>
-      <label>Device Type<input value={draft.deviceType} onChange={e=>update('deviceType',e.target.value)}/></label>
-      <label>Brand<input value={draft.brand} onChange={e=>update('brand',e.target.value)}/></label>
-      <label>Model<input value={draft.model} onChange={e=>update('model',e.target.value)}/></label>
-      <label>Color<input value={draft.color||''} onChange={e=>update('color',e.target.value)}/></label>
-      <label>IMEI / Serial<input value={draft.serial||''} onChange={e=>update('serial',e.target.value)}/></label>
-      <label>Passcode<input value={draft.passcode||''} onChange={e=>update('passcode',e.target.value)}/></label>
-      <label className="rm-wide">Repair / Issue<input value={draft.issue} onChange={e=>update('issue',e.target.value)}/></label>
-      <label>Part<input value={draft.part||''} onChange={e=>update('part',e.target.value)}/></label>
-      <label>Estimate<input type="number" min="0" step=".01" value={draft.estimate} onChange={e=>update('estimate',Number(e.target.value))}/></label>
-      <label>Status<select value={draft.status} onChange={e=>update('status',e.target.value as RepairStatus)}>{ACTIVE_STATUSES.map(s=><option key={s}>{s}</option>)}</select></label>
-      <label>Technician<input value={draft.technician||''} onChange={e=>update('technician',e.target.value)}/></label>
-      <label>Priority<select value={draft.priority} onChange={e=>update('priority',e.target.value as Repair['priority'])}><option>Normal</option><option>High</option><option>Urgent</option></select></label>
-      <label>Due Date<div className="rm-date"><CalendarDays size={16}/><input type="date" value={draft.dueDate||''} onChange={e=>update('dueDate',e.target.value)}/></div></label>
-      <label className="rm-wide">Notes<textarea value={draft.notes||''} onChange={e=>update('notes',e.target.value)} rows={6}/></label>
-    </div>
-    <div className="rm-footer"><button className="danger" onClick={remove}><Trash2 size={16}/>Delete Ticket</button><div><button onClick={close}>Cancel</button><button className="primary" onClick={save}><Save size={16}/>Save Changes</button></div></div>
-  </div></div>;
+ const [repair,setRepair]=useState<Repair|null>(null),[draft,setDraft]=useState<Repair|null>(null);
+ useEffect(()=>{const click=(event:MouseEvent)=>{const target=event.target as HTMLElement;if(target.closest('button,select,input,textarea,label'))return;const card=target.closest('.repair-card');if(!card)return;const number=card.querySelector('strong')?.textContent?.trim();const found=storage.getRepairs().find(r=>r.number===number);if(found){setRepair(found);setDraft({...found})}};document.addEventListener('click',click);return()=>document.removeEventListener('click',click)},[]);
+ if(!repair||!draft)return null;
+ const update=<K extends keyof Repair>(key:K,value:Repair[K])=>setDraft(current=>current?{...current,[key]:value}:current);const close=()=>{setRepair(null);setDraft(null)};
+ const save=()=>{if(!draft.customerName.trim()||!draft.customerPhone.trim()||!draft.brand.trim()||!draft.model.trim()){alert('Customer, phone, brand, and model are required.');return}const updated={...draft,estimate:Number(draft.estimate)||0,updatedAt:new Date().toISOString()};storage.saveRepairs(storage.getRepairs().map(r=>r.id===updated.id?updated:r));window.dispatchEvent(new Event('gadgetpos-data-changed'));setRepair(updated);setDraft({...updated});alert(`${updated.number} updated.`)};
+ const remove=()=>{if(!confirm(`Delete ${draft.number}? This cannot be undone.`))return;storage.saveRepairs(storage.getRepairs().filter(r=>r.id!==draft.id));window.dispatchEvent(new Event('gadgetpos-data-changed'));close()};
+ const checkout=()=>{save();window.dispatchEvent(new CustomEvent('gadgetpos-add-repair',{detail:{repairId:draft.id}}));close()};
+ const print=(kind:'ticket'|'claim'|'label')=>{if(kind==='label'){printDeviceLabel(draft);return}const title=kind==='ticket'?'Repair Check-In Ticket':'Customer Claim Ticket';const body=kind==='ticket'?`<div class="grid"><div><b>Customer</b><span>${safe(draft.customerName)}</span></div><div><b>Phone</b><span>${safe(draft.customerPhone)}</span></div><div><b>Device</b><span>${safe(draft.brand)} ${safe(draft.model)}</span></div><div><b>IMEI / Serial</b><span>${safe(draft.serial||'—')}</span></div><div class="full"><b>Repair / Issue</b><span>${safe(draft.issue)}</span></div><div><b>Estimate</b><span>$${Number(draft.estimate||0).toFixed(2)}</span></div><div><b>Status</b><span>${safe(draft.status)}</span></div><div><b>Technician</b><span>${safe(draft.technician||'Unassigned')}</span></div><div><b>Due Date</b><span>${safe(draft.dueDate||'Not set')}</span></div><div class="full"><b>Notes</b><span>${safe(draft.notes||'—')}</span></div></div><div class="sign"><span>Customer Signature</span><span>Employee Signature</span></div>`:`<h2>${safe(draft.number)}</h2><p><b>${safe(draft.customerName)}</b></p><p>${safe(draft.brand)} ${safe(draft.model)}</p><p>${safe(draft.issue)}</p><p>Status: ${safe(draft.status)}</p><hr><p>Gadget Defenders · 270-380-1505</p>`;printHtml(`<!doctype html><html><head><title>${safe(draft.number)} ${title}</title><style>@page{margin:12mm}body{font-family:Arial,sans-serif;color:#17283a;margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid div{border:1px solid #ccd8e2;border-radius:8px;padding:10px}.grid .full{grid-column:1/-1}.grid b{display:block;font-size:10px;text-transform:uppercase;color:#687b8d}.grid span{display:block;margin-top:5px;font-weight:700;white-space:pre-wrap}.sign{display:grid;grid-template-columns:1fr 1fr;gap:35px;margin-top:50px}.sign span{border-top:1px solid #17283a;padding-top:5px;font-size:12px}</style></head><body><header><h1>Gadget Defenders</h1><p>${title}</p></header>${body}</body></html>`)};
+ return <div className="rm-backdrop"><div className="rm-modal"><div className="rm-head"><div><span className="rm-ticket">{draft.number}</span><h2>{draft.brand} {draft.model}</h2><p>Created {new Date(draft.createdAt).toLocaleString()}</p></div><button onClick={close}><X/></button></div><div className="rm-actions-top"><button onClick={()=>print('ticket')}><Printer size={16}/>Full Ticket</button><button onClick={()=>print('claim')}><Printer size={16}/>Claim Ticket</button><button onClick={()=>print('label')}><Printer size={16}/>Device Label</button><button className="primary" onClick={checkout}><CreditCard size={16}/>Send to Checkout</button></div><div className="rm-grid"><label>Customer Name<input value={draft.customerName} onChange={e=>update('customerName',e.target.value)}/></label><label>Customer Phone<input value={draft.customerPhone} onChange={e=>update('customerPhone',e.target.value)}/></label><label>Device Type<input value={draft.deviceType} onChange={e=>update('deviceType',e.target.value)}/></label><label>Brand<input value={draft.brand} onChange={e=>update('brand',e.target.value)}/></label><label>Model<input value={draft.model} onChange={e=>update('model',e.target.value)}/></label><label>Color<input value={draft.color||''} onChange={e=>update('color',e.target.value)}/></label><label>IMEI / Serial<input value={draft.serial||''} onChange={e=>update('serial',e.target.value)}/></label><label>Passcode<input value={draft.passcode||''} onChange={e=>update('passcode',e.target.value)}/></label><label className="rm-wide">Repair / Issue<input value={draft.issue} onChange={e=>update('issue',e.target.value)}/></label><label>Part<input value={draft.part||''} onChange={e=>update('part',e.target.value)}/></label><label>Estimate<input type="number" min="0" step=".01" value={draft.estimate} onChange={e=>update('estimate',Number(e.target.value))}/></label><label>Status<select value={draft.status} onChange={e=>update('status',e.target.value as RepairStatus)}>{ACTIVE_STATUSES.map(s=><option key={s}>{s}</option>)}</select></label><label>Technician<input value={draft.technician||''} onChange={e=>update('technician',e.target.value)}/></label><label>Priority<select value={draft.priority} onChange={e=>update('priority',e.target.value as Repair['priority'])}><option>Normal</option><option>High</option><option>Urgent</option></select></label><label>Due Date<div className="rm-date"><CalendarDays size={16}/><input type="date" value={draft.dueDate||''} onChange={e=>update('dueDate',e.target.value)}/></div></label><label className="rm-wide">Notes<textarea value={draft.notes||''} onChange={e=>update('notes',e.target.value)} rows={6}/></label></div><div className="rm-footer"><button className="danger" onClick={remove}><Trash2 size={16}/>Delete Ticket</button><div><button onClick={close}>Cancel</button><button className="primary" onClick={save}><Save size={16}/>Save Changes</button></div></div></div></div>
 }
