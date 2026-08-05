@@ -1,108 +1,46 @@
 import { useMemo, useState } from 'react';
+import { Download, Printer, Upload, X } from 'lucide-react';
+import { storage } from './storage';
 import type { Customer, InventoryItem, Repair, Sale } from './types';
 
-type RangeKey = 'week' | 'month' | 'year' | 'all' | 'custom';
+type RangeKey='week'|'month'|'year'|'all'|'custom';
+type ReportKey='sales'|'repairs'|'customers'|'inventory'|'low-stock'|'profit'|'tax'|'ready';
+type Props={sales:Sale[];repairs:Repair[];customers:Customer[];inventory:InventoryItem[]};
+type Row=Record<string,string|number>;
+const reportNames:Record<ReportKey,string>={sales:'Sales Summary',repairs:'Repair Summary',customers:'Customer Report',inventory:'Inventory Valuation','low-stock':'Low Stock',profit:'Profit Report',tax:'Tax Summary',ready:'Ready for Pickup'};
+const esc=(v:unknown)=>`"${String(v??'').replace(/"/g,'""')}"`;
+const csv=(rows:Row[])=>{const headers=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));return [headers.map(esc).join(','),...rows.map(r=>headers.map(h=>esc(r[h])).join(','))].join('\n')};
+const download=(name:string,text:string)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href)};
+const parseCsv=(text:string)=>{const lines=text.replace(/\r/g,'').split('\n').filter(Boolean);if(!lines.length)return[];const split=(line:string)=>{const out:string[]=[];let cur='',quoted=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const headers=split(lines[0]).map(x=>x.trim());return lines.slice(1).map(line=>Object.fromEntries(headers.map((h,i)=>[h,split(line)[i]??''])))};
+function startFor(range:RangeKey,custom:string){if(range==='all')return null;if(range==='custom')return custom?new Date(`${custom}T00:00:00`):null;const d=new Date();if(range==='week'){const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day)}else if(range==='month')d.setDate(1);else d.setMonth(0,1);d.setHours(0,0,0,0);return d}
 
-type Props = {
-  sales: Sale[];
-  repairs: Repair[];
-  customers: Customer[];
-  inventory: InventoryItem[];
-};
-
-function startForRange(range: RangeKey, customStart: string): Date | null {
-  if (range === 'all') return null;
-  if (range === 'custom') return customStart ? new Date(`${customStart}T00:00:00`) : null;
-  const now = new Date();
-  const start = new Date(now);
-  if (range === 'week') {
-    const day = (now.getDay() + 6) % 7;
-    start.setDate(now.getDate() - day);
-  } else if (range === 'month') {
-    start.setDate(1);
-  } else {
-    start.setMonth(0, 1);
-  }
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
-export default function ReportsPage({ sales, repairs, customers, inventory }: Props) {
-  const [range, setRange] = useState<RangeKey>('month');
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
-
-  const start = startForRange(range, customStart);
-  const end = range === 'custom' && customEnd ? new Date(`${customEnd}T23:59:59`) : new Date();
-  const inRange = (date: string) => {
-    const value = new Date(date);
-    return (!start || value >= start) && value <= end;
-  };
-
-  const periodSales = useMemo(() => sales.filter(s => inRange(s.createdAt)), [sales, range, customStart, customEnd]);
-  const periodRepairs = useMemo(() => repairs.filter(r => inRange(r.createdAt)), [repairs, range, customStart, customEnd]);
-  const gross = periodSales.reduce((sum, sale) => sum + sale.total, 0);
-  const tax = periodSales.reduce((sum, sale) => sum + sale.tax, 0);
-  const subtotal = periodSales.reduce((sum, sale) => sum + sale.subtotal, 0);
-  const average = periodSales.length ? gross / periodSales.length : 0;
-  const repairRevenue = periodSales.flatMap(s => s.lines).filter(l => l.kind === 'Repair').reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
-  const cardSales = periodSales.filter(s => s.paymentMethod === 'Card').reduce((sum, sale) => sum + sale.total, 0);
-  const cashSales = periodSales.filter(s => s.paymentMethod === 'Cash').reduce((sum, sale) => sum + sale.total, 0);
-
-  const customerRows = useMemo(() => {
-    const term = customerSearch.trim().toLowerCase();
-    return customers.map(customer => {
-      const customerSales = periodSales.filter(s => s.customerId === customer.id || s.customerName === customer.name);
-      const customerRepairs = periodRepairs.filter(r => r.customerId === customer.id || r.customerName === customer.name);
-      const spent = customerSales.reduce((sum, sale) => sum + sale.total, 0);
-      const visits = customerSales.length;
-      const dates = [...customerSales.map(s => s.createdAt), ...customerRepairs.map(r => r.createdAt)].sort().reverse();
-      return { customer, spent, visits, repairs: customerRepairs.length, lastVisit: dates[0] };
-    }).filter(row => !term || [row.customer.name, row.customer.phone, row.customer.email].join(' ').toLowerCase().includes(term))
-      .sort((a, b) => b.spent - a.spent);
-  }, [customers, periodSales, periodRepairs, customerSearch]);
-
-  const inventoryCost = inventory.reduce((sum, item) => sum + item.cost * item.quantity, 0);
-  const inventoryRetail = inventory.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  return <section className="reports-page content">
-    <div className="reports-toolbar">
-      <div>
-        <h2>Store Reports</h2>
-        <p>Sales, repairs, customers, payments, and inventory for the selected period.</p>
-      </div>
-      <div className="range-buttons">
-        {(['week','month','year','all'] as RangeKey[]).map(key => <button key={key} className={range === key ? 'active' : ''} onClick={() => setRange(key)}>{key === 'all' ? 'All Time' : `This ${key[0].toUpperCase()}${key.slice(1)}`}</button>)}
-        <button className={range === 'custom' ? 'active' : ''} onClick={() => setRange('custom')}>Custom</button>
-      </div>
-    </div>
-
-    {range === 'custom' && <div className="custom-range panel"><label>Start<input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></label><label>End<input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></label></div>}
-
-    <div className="report-metrics">
-      <article><span>Gross Sales</span><strong>${gross.toFixed(2)}</strong><small>{periodSales.length} transactions</small></article>
-      <article><span>Net Before Tax</span><strong>${subtotal.toFixed(2)}</strong><small>Sales before tax</small></article>
-      <article><span>Tax Collected</span><strong>${tax.toFixed(2)}</strong><small>Sales tax liability</small></article>
-      <article><span>Average Sale</span><strong>${average.toFixed(2)}</strong><small>Per transaction</small></article>
-      <article><span>Repair Revenue</span><strong>${repairRevenue.toFixed(2)}</strong><small>{periodRepairs.length} repairs checked in</small></article>
-      <article><span>Open Repairs</span><strong>{repairs.filter(r => r.status !== 'Completed').length}</strong><small>{repairs.filter(r => r.status === 'Waiting on Parts').length} waiting on parts</small></article>
-    </div>
-
-    <div className="reports-grid">
-      <div className="panel report-panel">
-        <div className="panel-title"><div><h3>Payment Summary</h3><p>How customers paid during this period.</p></div></div>
-        <div className="summary-list"><div><span>Card</span><strong>${cardSales.toFixed(2)}</strong></div><div><span>Cash</span><strong>${cashSales.toFixed(2)}</strong></div><div><span>Split / Other</span><strong>${Math.max(0, gross-cardSales-cashSales).toFixed(2)}</strong></div></div>
-      </div>
-      <div className="panel report-panel">
-        <div className="panel-title"><div><h3>Inventory Snapshot</h3><p>Current inventory value, independent of the date range.</p></div></div>
-        <div className="summary-list"><div><span>Cost Value</span><strong>${inventoryCost.toFixed(2)}</strong></div><div><span>Retail Value</span><strong>${inventoryRetail.toFixed(2)}</strong></div><div><span>Low Stock Items</span><strong>{inventory.filter(i => i.quantity <= i.minimum).length}</strong></div></div>
-      </div>
-    </div>
-
-    <div className="panel customer-report">
-      <div className="panel-title customer-report-title"><div><h3>Customer Report</h3><p>Customer activity for this week, month, year, all time, or a custom period.</p></div><input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Search customer, phone, or email" /></div>
-      <div className="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Money Spent</th><th>Sales</th><th>Repairs</th><th>Last Visit</th></tr></thead><tbody>{customerRows.map(({customer,spent,visits,repairs:lastRepairs,lastVisit}) => <tr key={customer.id}><td><strong>{customer.name}</strong><small>{customer.email || ''}</small></td><td>{customer.phone}</td><td>${spent.toFixed(2)}</td><td>{visits}</td><td>{lastRepairs}</td><td>{lastVisit ? new Date(lastVisit).toLocaleDateString() : '—'}</td></tr>)}{!customerRows.length && <tr><td colSpan={6}>No customer activity found for this period.</td></tr>}</tbody></table></div>
-    </div>
-  </section>;
+export default function ReportsPage({sales,repairs,customers,inventory}:Props){
+ const [report,setReport]=useState<ReportKey>('sales'),[range,setRange]=useState<RangeKey>('month'),[customStart,setCustomStart]=useState(''),[customEnd,setCustomEnd]=useState(''),[search,setSearch]=useState('');
+ const [preview,setPreview]=useState<Record<string,string>[]>([]),[importType,setImportType]=useState<'customers'|'inventory'>('customers');
+ const start=startFor(range,customStart),end=range==='custom'&&customEnd?new Date(`${customEnd}T23:59:59`):new Date();
+ const inRange=(date:string)=>{const d=new Date(date);return(!start||d>=start)&&d<=end};
+ const ps=useMemo(()=>sales.filter(s=>inRange(s.createdAt)),[sales,range,customStart,customEnd]);
+ const pr=useMemo(()=>repairs.filter(r=>inRange(r.createdAt)),[repairs,range,customStart,customEnd]);
+ const rows=useMemo<Row[]>(()=>{
+  if(report==='sales')return ps.map(s=>({Date:new Date(s.createdAt).toLocaleDateString(),Sale:s.number,Customer:s.customerName||'Walk-in','Payment Method':s.paymentMethod,Subtotal:s.subtotal.toFixed(2),Tax:s.tax.toFixed(2),Total:s.total.toFixed(2)}));
+  if(report==='repairs')return pr.map(r=>({Date:new Date(r.createdAt).toLocaleDateString(),Ticket:r.number,Customer:r.customerName,Phone:r.customerPhone,Device:`${r.brand} ${r.model}`,Repair:r.issue,Technician:r.technician||'',Status:r.status,Estimate:r.estimate.toFixed(2)}));
+  if(report==='customers')return customers.map(c=>{const cs=ps.filter(s=>s.customerId===c.id||s.customerName===c.name),cr=pr.filter(r=>r.customerId===c.id||r.customerName===c.name);return{Customer:c.name,Phone:c.phone,Email:c.email||'',Sales:cs.length,Repairs:cr.length,'Money Spent':cs.reduce((a,s)=>a+s.total,0).toFixed(2)}}).sort((a,b)=>Number(b['Money Spent'])-Number(a['Money Spent']));
+  if(report==='inventory'||report==='low-stock')return inventory.filter(i=>report==='inventory'||i.quantity<=i.minimum).map(i=>({Category:i.category,Item:i.name,Brand:i.brand||'',Model:i.model||'',SKU:i.sku||'',Quantity:i.quantity,Minimum:i.minimum,'Unit Cost':i.cost.toFixed(2),'Unit Price':i.price.toFixed(2),'Cost Value':(i.cost*i.quantity).toFixed(2),'Retail Value':(i.price*i.quantity).toFixed(2)}));
+  if(report==='profit')return ps.map(s=>{const cost=s.lines.reduce((sum,l)=>{if(l.kind!=='Inventory')return sum;const item=inventory.find(i=>i.id===l.referenceId);return sum+(item?.cost||0)*l.quantity},0);return{Date:new Date(s.createdAt).toLocaleDateString(),Sale:s.number,Revenue:s.subtotal.toFixed(2),'Estimated Cost':cost.toFixed(2),'Gross Profit':(s.subtotal-cost).toFixed(2)}});
+  if(report==='tax')return ps.map(s=>({Date:new Date(s.createdAt).toLocaleDateString(),Sale:s.number,'Taxable Sales':s.subtotal.toFixed(2),'Tax Collected':s.tax.toFixed(2),Total:s.total.toFixed(2)}));
+  return repairs.filter(r=>r.status==='Ready for Pickup').map(r=>({Ticket:r.number,Customer:r.customerName,Phone:r.customerPhone,Device:`${r.brand} ${r.model}`,Repair:r.issue,Technician:r.technician||'',Balance:r.estimate.toFixed(2),'Date Checked In':new Date(r.createdAt).toLocaleDateString()}));
+ },[report,ps,pr,customers,inventory,repairs]);
+ const filtered=rows.filter(r=>!search.trim()||Object.values(r).join(' ').toLowerCase().includes(search.toLowerCase()));
+ const gross=ps.reduce((a,s)=>a+s.total,0),tax=ps.reduce((a,s)=>a+s.tax,0),subtotal=ps.reduce((a,s)=>a+s.subtotal,0),invCost=inventory.reduce((a,i)=>a+i.cost*i.quantity,0),invRetail=inventory.reduce((a,i)=>a+i.price*i.quantity,0);
+ const metrics=report==='inventory'||report==='low-stock'?[['Inventory Cost',`$${invCost.toFixed(2)}`],['Retail Value',`$${invRetail.toFixed(2)}`],['Potential Margin',`$${(invRetail-invCost).toFixed(2)}`],['Low Stock',inventory.filter(i=>i.quantity<=i.minimum).length]]:report==='repairs'||report==='ready'?[['Repairs in Range',pr.length],['Open Repairs',repairs.filter(r=>r.status!=='Completed').length],['Ready for Pickup',repairs.filter(r=>r.status==='Ready for Pickup').length],['Estimated Revenue',`$${pr.reduce((a,r)=>a+r.estimate,0).toFixed(2)}`]]:[['Gross Sales',`$${gross.toFixed(2)}`],['Before Tax',`$${subtotal.toFixed(2)}`],['Tax Collected',`$${tax.toFixed(2)}`],['Transactions',ps.length]];
+ function handleImport(file?:File){if(!file)return;const reader=new FileReader();reader.onload=()=>setPreview(parseCsv(String(reader.result)));reader.readAsText(file)}
+ function commitImport(){if(importType==='customers'){const old=storage.getCustomers(),next=[...old];preview.forEach(r=>{const name=r.Name||r.Customer||r.name,phone=r.Phone||r.phone;if(!name||!phone)return;const found=next.find(c=>c.phone===phone);if(found){found.name=name;found.email=r.Email||r.email||found.email}else next.unshift({id:crypto.randomUUID(),name,phone,email:r.Email||r.email||undefined,createdAt:new Date().toISOString()})});storage.saveCustomers(next)}else{const old=storage.getInventory(),next=[...old];preview.forEach(r=>{const name=r.Item||r.Name||r.name;if(!name)return;const sku=r.SKU||r.sku;const found=next.find(i=>(sku&&i.sku===sku)||i.name===name);const quantity=Number(r.Quantity||r.quantity||0),cost=Number(r.Cost||r['Unit Cost']||0),price=Number(r.Price||r['Unit Price']||0);if(found){found.quantity=quantity;found.cost=cost;found.price=price}else next.unshift({id:crypto.randomUUID(),category:'Accessory',name,sku:sku||undefined,quantity,minimum:Number(r.Minimum||0),cost,price})});storage.saveInventory(next)}window.dispatchEvent(new Event('gadgetpos-data-changed'));setPreview([]);alert(`${preview.length} rows imported.`)}
+ const headers=filtered.length?Object.keys(filtered[0]):[];
+ return <section className="reports-page content">
+  <div className="reports-hero"><div><h2>Gadget Defenders Reports Center</h2><p>Run, print, export, and import the numbers behind your business.</p></div><div className="reports-actions"><button onClick={()=>window.print()}><Printer size={16}/>Print</button><button onClick={()=>download(`${report}-${new Date().toISOString().slice(0,10)}.csv`,csv(filtered))}><Download size={16}/>Export CSV</button><label><Upload size={16}/>Import CSV<input type="file" accept=".csv,text/csv" onChange={e=>handleImport(e.target.files?.[0])}/></label></div></div>
+  <div className="report-control-panel"><label>Report Type<select value={report} onChange={e=>setReport(e.target.value as ReportKey)}>{Object.entries(reportNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><div><div className="date-controls"><label>Range<select value={range} onChange={e=>setRange(e.target.value as RangeKey)}><option value="week">This Week</option><option value="month">This Month</option><option value="year">This Year</option><option value="all">All Time</option><option value="custom">Custom</option></select></label><label>Start<input type="date" disabled={range!=='custom'} value={customStart} onChange={e=>setCustomStart(e.target.value)}/></label><label>End<input type="date" disabled={range!=='custom'} value={customEnd} onChange={e=>setCustomEnd(e.target.value)}/></label></div><div className="report-preset-row">{(['sales','repairs','customers','inventory','low-stock','profit','tax','ready'] as ReportKey[]).map(k=><button key={k} className={report===k?'active':''} onClick={()=>setReport(k)}>{reportNames[k]}</button>)}</div></div></div>
+  <div className="report-summary-cards">{metrics.map(([label,value])=><article key={String(label)}><span>{label}</span><strong>{value}</strong><small>{reportNames[report]}</small></article>)}</div>
+  <div className="report-table-panel"><div className="report-table-head"><div><h3>{reportNames[report]}</h3><p>{filtered.length} rows in the selected report.</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter this report..."/></div><div className="table-wrap"><table><thead><tr>{headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{filtered.map((r,i)=><tr key={i}>{headers.map(h=><td key={h}>{r[h]}</td>)}</tr>)}{!filtered.length&&<tr><td colSpan={Math.max(1,headers.length)}>No data found for this report and date range.</td></tr>}</tbody></table></div></div>
+  {!!preview.length&&<div className="report-import-preview"><div className="report-import-modal"><header><div><h3>Import Preview</h3><p>{preview.length} rows found. Existing matches will be updated.</p></div><button onClick={()=>setPreview([])}><X/></button></header><div className="report-import-body"><div className="report-import-options"><label>Import Into<select value={importType} onChange={e=>setImportType(e.target.value as 'customers'|'inventory')}><option value="customers">Customers</option><option value="inventory">Inventory</option></select></label></div><div className="table-wrap"><table><thead><tr>{Object.keys(preview[0]||{}).map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{preview.slice(0,20).map((r,i)=><tr key={i}>{Object.keys(preview[0]||{}).map(h=><td key={h}>{r[h]}</td>)}</tr>)}</tbody></table></div>{preview.length>20&&<p>Showing the first 20 rows before import.</p>}</div><div className="report-import-actions"><button onClick={()=>setPreview([])}>Cancel</button><button className="primary" onClick={commitImport}>Import {preview.length} Rows</button></div></div></div>}
+ </section>
 }
